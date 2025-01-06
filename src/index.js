@@ -1,13 +1,13 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from "react-native";
 import React, { useState } from "react";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
-import { GOOGLE_CLOUD_VISION_API_KEY } from "@env";
 
 const DetectObject = () => {
     const [imageUri, setImageUri] = useState(null);
     const [labels, setLabels] = useState([]);
+    const [loading, setLoading] = useState(false); // State for loading indicator
 
     const takePhoto = async () => {
         try {
@@ -26,21 +26,20 @@ const DetectObject = () => {
             if (!result.canceled) {
                 setImageUri(result.assets[0].uri);
             }
-            console.log(result);
-        }
-        catch (err) {
+        } catch (err) {
             console.log("Error taking photo: ", err);
         }
     };
 
     const analyzeImage = async () => {
-        try {
-            if (!imageUri) {
-                alert("Please take a photo first.");
-                return;
-            }
+        if (!imageUri) {
+            alert("Please take a photo first.");
+            return;
+        }
 
-            const apiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_CLOUD_VISION_API_KEY}`;
+       setLoading(true); // Start loading
+        try {
+            const apiUrl = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_URL;
 
             const base64Image = await FileSystem.readAsStringAsync(imageUri, {
                 encoding: FileSystem.EncodingType.Base64,
@@ -63,59 +62,54 @@ const DetectObject = () => {
             };
 
             const apiResponse = await axios.post(apiUrl, requestData);
-            setLabels(apiResponse.data.responses[0].labelAnnotations);
+            const detectedLabels = apiResponse.data.responses[0]?.labelAnnotations;
+
+            if (detectedLabels) {
+                setLabels(detectedLabels);
+            } else {
+                alert("No labels detected. Try another photo.");
+            }
         } catch (err) {
             console.log("Error analyzing image: ", err);
             alert("Error analyzing image. Please try again.");
+        } finally {
+            setLoading(false); // Stop loading
         }
     };
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>
-                Google Cloud Vision API
-            </Text>
+            <Text style={styles.title}>Tražilica demo</Text>
             {imageUri && (
                 <Image
                     source={{ uri: imageUri }}
-                    style={{ width: 300, height: 300 }}
+                    style={{ width: 300, height: 300, borderRadius: 10, marginVertical: 20 }}
                 />
             )}
-            <TouchableOpacity
-                onPress={takePhoto}
-                style={styles.button}
-            >
-                <Text style={styles.text}>Take a photo</Text>
+
+            <TouchableOpacity onPress={takePhoto} style={styles.button}>
+                <Text style={styles.text}>Uslikaj</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-                onPress={analyzeImage}
-                style={styles.button}
-            >
-                <Text style={styles.text}>Analyze photo</Text>
+            <TouchableOpacity onPress={analyzeImage} style={styles.button}>
+                <Text style={styles.text}>Analiziraj</Text>
             </TouchableOpacity>
-            {
-                labels.length > 0 && (
-                    <View>
-                        <Text style={styles.text}>
-                            Labels:
+
+            {loading && <ActivityIndicator size="large" color="blue" style={{ marginVertical: 20 }} />}
+
+            {labels.length > 0 && (
+                <View>
+                    <Text style={[styles.text, { fontWeight: "bold", marginTop: 20 }]}>Detected Labels:</Text>
+                    {labels.map((label) => (
+                        <Text key={label.mid} style={styles.outputText}>
+                            {label.description}
                         </Text>
-                        {
-                            labels.map((label) => (
-                                <Text
-                                    key={label.mid}
-                                    style={styles.outputText}
-                                >
-                                    {label.description}
-                                </Text>
-                            ))
-                        }
-                    </View>
-                )
-            }
+                    ))}
+                </View>
+            )}
         </View>
     );
-}
+};
 
 export default DetectObject;
 
@@ -145,14 +139,5 @@ const styles = StyleSheet.create({
     outputText: {
         fontSize: 16,
         margin: 5,
-    },
-    label: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginTop: 20,
-    },
-    outputLabel: {
-        fontSize: 18,
-        marginBottom: 10,
     },
 });
