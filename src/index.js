@@ -9,7 +9,6 @@ const DetectObject = () => {
     const [imageUri, setImageUri] = useState(null);
     const [labels, setLabels] = useState([]);
     const [task, setTask] = useState([]); 
-  //  const [found, setFound] = useState();
     const [loading, setLoading] = useState(false);
 
     const takePhoto = async () => {
@@ -83,7 +82,7 @@ const DetectObject = () => {
             console.log("Error analyzing image: ", err);
             alert("Error analyzing image. Please try again.");
         } finally {
-            setLoading(false); // Stop loading
+            setLoading(false);
         }
     };
 
@@ -100,9 +99,11 @@ const DetectObject = () => {
         const match = task.some((label) => descriptions.includes(label));
         if (match) {
             alert("Pronađeno!");
+            setTask((prevTask) => prevTask.filter((label) => !descriptions.includes(label)));
         } else {
             alert("Nije pronađeno!");
         }
+        setImageUri(null);
 
     };
 
@@ -155,7 +156,7 @@ const DetectObject = () => {
                 </View>
             )}
 
-            {role === "student" && (
+            {role === "student" && !loading && (
                 <View>
                     <Text style={[styles.title2]}>Pronađi:</Text>
                     {task.map((label, index) => (
