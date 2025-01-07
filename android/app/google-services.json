@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "768428277395",
+    "project_id": "trazilica-441520",
+    "storage_bucket": "trazilica-441520.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:768428277395:android:49c8e9349ff3ca46301766",
+        "android_client_info": {
+          "package_name": "com.sluga.trazilica"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcndnpG2CNlNUegeoVb-VFcMKMbK17QW0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
