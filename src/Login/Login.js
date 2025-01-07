@@ -23,7 +23,8 @@ export const Login = () => {
   const nav = useNavigation();
 
   const goToRegistration = () => {
-    nav.push("DetectObject");
+    nav.push("Register");
+    // nav.navigate("DetectObject");
   };
 
   const goToMainFlow = async () => {
