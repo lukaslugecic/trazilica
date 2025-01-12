@@ -24,7 +24,10 @@ export const Login = () => {
 
   const goToRegistration = () => {
     nav.push("Register");
-    // nav.navigate("DetectObject");
+  };
+
+  const goToDetectObject = () => {
+    nav.navigate("DetectObject");
   };
 
   const goToMainFlow = async () => {
@@ -69,6 +72,8 @@ export const Login = () => {
               secureTextEntry
             />
           </View>
+          <Button title="jbs login i probaj app" onPress={goToDetectObject} variant="primary" />
+
           <Button title="Login" onPress={goToMainFlow} variant="primary" />
           <Button
             title="Sign Up"
