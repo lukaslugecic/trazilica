@@ -1,17 +1,40 @@
-import { StyleSheet, View } from 'react-native';
-import DetectObject from './src';
+import React from "react";
+
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
+import { Login } from "./src/Login/Login";
+import { Register } from "./src/Register/Register";
+import DetectObject  from "./src/DetectObject/DetectObject";
 
 export default function App() {
+  const Stack = createNativeStackNavigator();
+
   return (
-    <View style={styles.container}>
-      <DetectObject />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen
+          name="Login"
+          component={Login}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Register"
+          component={Register}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="DetectObject"
+          component={DetectObject}
+          options={{
+            headerShown: false,
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
-
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  },
-});
