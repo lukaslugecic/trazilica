@@ -1,11 +1,9 @@
 import React from "react";
-
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
 import { Login } from "./src/Login/Login";
 import { Register } from "./src/Register/Register";
-import DetectObject  from "./src/DetectObject/DetectObject";
+import DetectObject from "./src/DetectObject/DetectObject";
 
 export default function App() {
   const Stack = createNativeStackNavigator();

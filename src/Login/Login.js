@@ -11,10 +11,9 @@ import {
   Alert,
   Button,
 } from "react-native";
-//import auth from "@react-native-firebase/auth";
-
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
+//import auth from "@react-native-firebase/auth";
 
 export const Login = () => {
   const [email, setEmail] = useState();
@@ -31,20 +30,19 @@ export const Login = () => {
   };
 
   const goToMainFlow = async () => {
-
     if (email && password) {
-        try {
-          const response = await signInWithEmailAndPassword(
-            auth,
-            email,
-            password
-          );
-          if (response.user) {
-            nav.replace("Main");
-          }
-        } catch (e) {
-          Alert.alert("Oops", "Please check your form and try again");
+      try {
+        const response = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        if (response.user) {
+          nav.replace("Main");
         }
+      } catch (e) {
+        Alert.alert("Oops", "Please check your form and try again");
+      }
     }
   };
 
@@ -72,7 +70,11 @@ export const Login = () => {
               secureTextEntry
             />
           </View>
-          <Button title="jbs login i probaj app" onPress={goToDetectObject} variant="primary" />
+          <Button
+            title="jbs login i probaj app"
+            onPress={goToDetectObject}
+            variant="primary"
+          />
 
           <Button title="Login" onPress={goToMainFlow} variant="primary" />
           <Button

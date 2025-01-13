@@ -10,7 +10,6 @@ import {
   Alert,
   Button,
 } from "react-native";
-
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, set } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
@@ -50,7 +49,11 @@ export const Register = () => {
     }
 
     try {
-      const response = await createUserWithEmailAndPassword(auth, email, password);
+      const response = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       if (response.user) {
         await createProfile(response.user.uid);
         Alert.alert("Success", "Account created successfully!");
