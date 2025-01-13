@@ -12,21 +12,17 @@ import {
   Button,
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
-//import auth from "@react-native-firebase/auth";
+import { ref, get, child } from "firebase/database";
+import { auth, database } from "../../firebaseConfig";
 
 export const Login = () => {
-  const [email, setEmail] = useState();
-  const [password, setPassword] = useState();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const nav = useNavigation();
 
   const goToRegistration = () => {
     nav.push("Register");
-  };
-
-  const goToDetectObject = () => {
-    nav.navigate("DetectObject");
   };
 
   const goToMainFlow = async () => {
@@ -38,11 +34,23 @@ export const Login = () => {
           password
         );
         if (response.user) {
-          nav.replace("Main");
+          const userId = response.user.uid;
+          // Fetch user’s role
+          const snapshot = await get(child(ref(database), `users/${userId}`));
+          if (snapshot.exists()) {
+            const userData = snapshot.val();
+            const userRole = userData.role || "student";
+
+            nav.replace("Main", { userId, role: userRole });
+          } else {
+            Alert.alert("Error", "Unable to find user role in database.");
+          }
         }
       } catch (e) {
-        Alert.alert("Oops", "Please check your form and try again");
+        Alert.alert("Oops", "Please check your credentials and try again.");
       }
+    } else {
+      Alert.alert("Validation Error", "Email and password must not be empty.");
     }
   };
 
@@ -70,11 +78,6 @@ export const Login = () => {
               secureTextEntry
             />
           </View>
-          <Button
-            title="jbs login i probaj app"
-            onPress={goToDetectObject}
-            variant="primary"
-          />
 
           <Button title="Login" onPress={goToMainFlow} variant="primary" />
           <Button

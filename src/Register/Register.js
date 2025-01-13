@@ -11,19 +11,27 @@ import {
   Button,
 } from "react-native";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { ref, set } from "firebase/database";
+import { ref, set, get } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
 import { auth, database } from "../../firebaseConfig";
 
 export const Register = () => {
   const [name, setName] = useState("");
+  const [role, setRole] = useState("student"); // Default
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const nav = useNavigation();
 
   const createProfile = async (userId) => {
     try {
-      await set(ref(database, `users/${userId}`), { name });
+      const user = await get(ref(database, `users/${email}`));
+      console.log("User: ", user);
+
+      await set(ref(database, `users/${userId}`), {
+        name,
+        role,
+        email,
+      });
       await set(ref(database, `leaderboard/${userId}`), { score: 0 });
     } catch (error) {
       console.error("Error saving profile to database: ", error);
@@ -55,9 +63,11 @@ export const Register = () => {
         password
       );
       if (response.user) {
-        await createProfile(response.user.uid);
+        const userId = response.user.uid;
+        await createProfile(userId);
+
         Alert.alert("Success", "Account created successfully!");
-        nav.replace("Main");
+        nav.replace("Main", { userId, role });
       }
     } catch (error) {
       console.error("Error during registration: ", error);
@@ -95,7 +105,22 @@ export const Register = () => {
               onChangeText={setPassword}
               secureTextEntry
             />
+            <View style={{ flexDirection: "row", marginVertical: 10 }}>
+              <Button
+                title="Student"
+                onPress={() => setRole("student")}
+                color={role === "student" ? "#2196F3" : "#B0BEC5"}
+              />
+              <View style={{ width: 20 }} />
+              <Button
+                title="Teacher"
+                onPress={() => setRole("teacher")}
+                color={role === "teacher" ? "#2196F3" : "#B0BEC5"}
+              />
+            </View>
+            <Text>Current Role: {role}</Text>
           </View>
+
           <Button
             title="Sign Up"
             onPress={registerAndGoToMainFlow}

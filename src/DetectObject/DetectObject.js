@@ -10,9 +10,14 @@ import React, { useState } from "react";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import { useRoute } from "@react-navigation/native";
+// import { ref, update } from "firebase/database"; // If you want to update scores
 
 const DetectObject = () => {
-  const [role, setRole] = useState("teacher");
+  const route = useRoute();
+  // read role and userId from route
+  const { role, userId } = route.params || { role: "student", userId: null };
+
   const [imageUri, setImageUri] = useState(null);
   const [labels, setLabels] = useState([]);
   const [task, setTask] = useState([]);
@@ -33,26 +38,27 @@ const DetectObject = () => {
       });
 
       if (!result.canceled) {
-        const imageUri = result.assets[0].uri;
-        setImageUri(imageUri);
-        await analyzeImage(imageUri);
+        const newUri = result.assets[0].uri;
+        setImageUri(newUri);
+        await analyzeImage(newUri);
       }
     } catch (err) {
       console.log("Error taking photo: ", err);
     }
   };
 
-  const analyzeImage = async (imageUri) => {
-    if (!imageUri) {
+  const analyzeImage = async (uri) => {
+    if (!uri) {
       alert("Please take a photo first.");
       return;
     }
 
-    setLoading(true); // Start loading
+    setLoading(true);
     try {
+      // Make sure to set your Vision API URL in .env or wherever
       const apiUrl = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_URL;
 
-      const base64Image = await FileSystem.readAsStringAsync(imageUri, {
+      const base64Image = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
@@ -77,9 +83,10 @@ const DetectObject = () => {
 
       if (detectedLabels) {
         if (role === "teacher") {
+          // Show teacher the labels so they can pick
           setLabels(detectedLabels);
         } else {
-          console.log("Detected labels: ", detectedLabels);
+          // Student: check if matches the tasks
           checkMatch(detectedLabels);
         }
       } else {
@@ -105,9 +112,15 @@ const DetectObject = () => {
     const match = task.some((label) => descriptions.includes(label));
     if (match) {
       alert("Pronađeno!");
+      // Remove found labels from task array
       setTask((prevTask) =>
         prevTask.filter((label) => !descriptions.includes(label))
       );
+      // Optionally update user score or do something else
+      // if (userId) {
+      //   const userRef = ref(database, `leaderboard/${userId}`);
+      //   update(userRef, { score: newScore });
+      // }
     } else {
       alert("Nije pronađeno!");
     }
@@ -116,16 +129,8 @@ const DetectObject = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tražilica </Text>
-
-      <TouchableOpacity
-        onPress={() => setRole(role === "teacher" ? "student" : "teacher")}
-        style={[styles.button, { backgroundColor: "green" }]}
-      >
-        <Text style={styles.text}>
-          Switch to {role === "teacher" ? "Student" : "Teacher"} Mode
-        </Text>
-      </TouchableOpacity>
+      <Text style={styles.title}>Tražilica</Text>
+      <Text>You are in {role.toUpperCase()} mode.</Text>
 
       {imageUri && (
         <Image
@@ -139,20 +144,6 @@ const DetectObject = () => {
         />
       )}
 
-      {!imageUri && role === "teacher" && (
-        <View>
-          <TouchableOpacity onPress={takePhoto} style={styles.button}>
-            <Text style={styles.text}>Uslikaj</Text>
-          </TouchableOpacity>
-          <Text style={[styles.title2]}>Odabrani predmeti:</Text>
-          {task.map((label, index) => (
-            <Text key={index} style={styles.outputText}>
-              {label}
-            </Text>
-          ))}
-        </View>
-      )}
-
       {loading && (
         <ActivityIndicator
           size="large"
@@ -161,33 +152,57 @@ const DetectObject = () => {
         />
       )}
 
-      {role === "teacher" && labels.length > 0 && (
+      {/* TEACHER UI */}
+      {role === "teacher" && (
         <View>
-          <Text style={[styles.title2]}>Što želim odabrati?</Text>
-          {labels.map((label) => (
-            <TouchableOpacity
-              key={label.mid}
-              onPress={() => selectLabel(label.description)}
-              style={styles.labelButton}
-            >
-              <Text style={styles.outputText}>{label.description}</Text>
-            </TouchableOpacity>
-          ))}
+          {/* If no photo is taken, show "Uslikaj" button */}
+          {!imageUri && (
+            <>
+              <TouchableOpacity onPress={takePhoto} style={styles.button}>
+                <Text style={styles.text}>Uslikaj</Text>
+              </TouchableOpacity>
+              <Text style={styles.title2}>Odabrani predmeti:</Text>
+              {task.map((label, index) => (
+                <Text key={index} style={styles.outputText}>
+                  {label}
+                </Text>
+              ))}
+            </>
+          )}
+
+          {/* If labels are detected, let teacher select which to add to task */}
+          {labels.length > 0 && (
+            <View>
+              <Text style={styles.title2}>Što želim odabrati?</Text>
+              {labels.map((label) => (
+                <TouchableOpacity
+                  key={label.mid}
+                  onPress={() => selectLabel(label.description)}
+                  style={styles.labelButton}
+                >
+                  <Text style={styles.outputText}>{label.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       )}
 
-      {role === "student" && !loading && (
+      {/* STUDENT UI */}
+      {role === "student" && (
         <View>
-          <Text style={[styles.title2]}>Pronađi:</Text>
+          <Text style={styles.title2}>Pronađi:</Text>
           {task.map((label, index) => (
             <Text key={index} style={styles.outputText}>
               {label}
             </Text>
           ))}
 
-          <TouchableOpacity onPress={takePhoto} style={styles.button}>
-            <Text style={styles.text}>Pronađi predmet</Text>
-          </TouchableOpacity>
+          {!loading && (
+            <TouchableOpacity onPress={takePhoto} style={styles.button}>
+              <Text style={styles.text}>Pronađi predmet</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -220,7 +235,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     margin: 10,
     alignItems: "center",
-    fontColor: "white",
   },
   text: {
     color: "white",
