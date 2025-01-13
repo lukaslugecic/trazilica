@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,16 +7,16 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import React, { useState } from "react";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import { useRoute } from "@react-navigation/native";
-// import { ref, update } from "firebase/database"; // If you want to update scores
+import CustomHeader from "../components/CustomHeader";
+
+const HEADER_HEIGHT = 64;
 
 const DetectObject = () => {
   const route = useRoute();
-  // read role and userId from route
   const { role, userId } = route.params || { role: "student", userId: null };
 
   const [imageUri, setImageUri] = useState(null);
@@ -30,13 +31,11 @@ const DetectObject = () => {
         alert("Camera permission is required to take photos.");
         return;
       }
-
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [3, 3],
         quality: 1,
       });
-
       if (!result.canceled) {
         const newUri = result.assets[0].uri;
         setImageUri(newUri);
@@ -52,12 +51,9 @@ const DetectObject = () => {
       alert("Please take a photo first.");
       return;
     }
-
     setLoading(true);
     try {
-      // Make sure to set your Vision API URL in .env or wherever
       const apiUrl = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_URL;
-
       const base64Image = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
@@ -65,15 +61,8 @@ const DetectObject = () => {
       const requestData = {
         requests: [
           {
-            image: {
-              content: base64Image,
-            },
-            features: [
-              {
-                type: "LABEL_DETECTION",
-                maxResults: 3,
-              },
-            ],
+            image: { content: base64Image },
+            features: [{ type: "LABEL_DETECTION", maxResults: 3 }],
           },
         ],
       };
@@ -83,11 +72,9 @@ const DetectObject = () => {
 
       if (detectedLabels) {
         if (role === "teacher") {
-          // Show teacher the labels so they can pick
-          setLabels(detectedLabels);
+          setLabels(detectedLabels); // let teacher select which labels to add
         } else {
-          // Student: check if matches the tasks
-          checkMatch(detectedLabels);
+          checkMatch(detectedLabels); // student checks for match immediately
         }
       } else {
         alert("No labels detected. Try another photo.");
@@ -108,19 +95,13 @@ const DetectObject = () => {
   };
 
   const checkMatch = (detectedLabels) => {
-    const descriptions = detectedLabels.map((label) => label.description);
+    const descriptions = detectedLabels.map((l) => l.description);
     const match = task.some((label) => descriptions.includes(label));
     if (match) {
       alert("Pronađeno!");
-      // Remove found labels from task array
       setTask((prevTask) =>
         prevTask.filter((label) => !descriptions.includes(label))
       );
-      // Optionally update user score or do something else
-      // if (userId) {
-      //   const userRef = ref(database, `leaderboard/${userId}`);
-      //   update(userRef, { score: newScore });
-      // }
     } else {
       alert("Nije pronađeno!");
     }
@@ -128,83 +109,72 @@ const DetectObject = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tražilica</Text>
-      <Text>You are in {role.toUpperCase()} mode.</Text>
+    <View style={styles.screenContainer}>
+      <CustomHeader title="Detect Object" />
+      <View style={styles.contentContainer}>
+        <Text style={styles.title}>Tražilica</Text>
+        <Text style={styles.subTitle}>
+          You are in {role.toUpperCase()} mode.
+        </Text>
 
-      {imageUri && (
-        <Image
-          source={{ uri: imageUri }}
-          style={{
-            width: 300,
-            height: 300,
-            borderRadius: 10,
-            marginVertical: 20,
-          }}
-        />
-      )}
+        {imageUri && (
+          <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+        )}
 
-      {loading && (
-        <ActivityIndicator
-          size="large"
-          color="blue"
-          style={{ marginVertical: 20 }}
-        />
-      )}
+        {loading && (
+          <ActivityIndicator size="large" color="blue" style={{ margin: 20 }} />
+        )}
 
-      {/* TEACHER UI */}
-      {role === "teacher" && (
-        <View>
-          {/* If no photo is taken, show "Uslikaj" button */}
-          {!imageUri && (
-            <>
-              <TouchableOpacity onPress={takePhoto} style={styles.button}>
-                <Text style={styles.text}>Uslikaj</Text>
-              </TouchableOpacity>
-              <Text style={styles.title2}>Odabrani predmeti:</Text>
-              {task.map((label, index) => (
-                <Text key={index} style={styles.outputText}>
-                  {label}
-                </Text>
-              ))}
-            </>
-          )}
-
-          {/* If labels are detected, let teacher select which to add to task */}
-          {labels.length > 0 && (
-            <View>
-              <Text style={styles.title2}>Što želim odabrati?</Text>
-              {labels.map((label) => (
-                <TouchableOpacity
-                  key={label.mid}
-                  onPress={() => selectLabel(label.description)}
-                  style={styles.labelButton}
-                >
-                  <Text style={styles.outputText}>{label.description}</Text>
+        {role === "teacher" && (
+          <View style={styles.teacherContainer}>
+            {!imageUri && (
+              <>
+                <TouchableOpacity onPress={takePhoto} style={styles.button}>
+                  <Text style={styles.buttonText}>Uslikaj</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-      )}
+                <Text style={styles.labelTitle}>Odabrani predmeti:</Text>
+                {task.map((label, index) => (
+                  <Text key={index} style={styles.taskText}>
+                    {label}
+                  </Text>
+                ))}
+              </>
+            )}
 
-      {/* STUDENT UI */}
-      {role === "student" && (
-        <View>
-          <Text style={styles.title2}>Pronađi:</Text>
-          {task.map((label, index) => (
-            <Text key={index} style={styles.outputText}>
-              {label}
-            </Text>
-          ))}
+            {labels.length > 0 && (
+              <View style={{ marginTop: 10 }}>
+                <Text style={styles.labelTitle}>Što želim odabrati?</Text>
+                {labels.map((label) => (
+                  <TouchableOpacity
+                    key={label.mid}
+                    onPress={() => selectLabel(label.description)}
+                    style={styles.labelButton}
+                  >
+                    <Text style={styles.labelText}>{label.description}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
-          {!loading && (
-            <TouchableOpacity onPress={takePhoto} style={styles.button}>
-              <Text style={styles.text}>Pronađi predmet</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+        {role === "student" && (
+          <View style={styles.studentContainer}>
+            <Text style={styles.labelTitle}>Pronađi:</Text>
+            {task.map((label, index) => (
+              <Text key={index} style={styles.taskText}>
+                {label}
+              </Text>
+            ))}
+
+            {!loading && (
+              <TouchableOpacity onPress={takePhoto} style={styles.button}>
+                <Text style={styles.buttonText}>Pronađi predmet</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
     </View>
   );
 };
@@ -212,44 +182,75 @@ const DetectObject = () => {
 export default DetectObject;
 
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  contentContainer: {
+    flex: 1,
+    marginTop: HEADER_HEIGHT,
+    padding: 20,
     alignItems: "center",
   },
   title: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "bold",
+    marginBottom: 8,
+  },
+  subTitle: {
+    fontSize: 16,
     marginBottom: 20,
-    marginTop: 50,
   },
-  title2: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    marginTop: 10,
+  imagePreview: {
+    width: 280,
+    height: 280,
+    borderRadius: 10,
+    marginVertical: 20,
+    borderWidth: 2,
+    borderColor: "#ccc",
   },
-  button: {
-    backgroundColor: "blue",
-    padding: 10,
-    borderRadius: 5,
-    margin: 10,
+  teacherContainer: {
+    width: "100%",
     alignItems: "center",
   },
-  text: {
-    color: "white",
-    fontSize: 20,
+  studentContainer: {
+    width: "100%",
+    alignItems: "center",
+  },
+  button: {
+    backgroundColor: "#2196F3",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    marginVertical: 10,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
     fontWeight: "bold",
   },
-  outputText: {
+  labelTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  taskText: {
     fontSize: 16,
-    margin: 5,
+    marginVertical: 2,
+    color: "#333",
   },
   labelButton: {
     backgroundColor: "lightgray",
-    padding: 10,
-    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 6,
     marginVertical: 5,
     alignItems: "center",
+  },
+  labelText: {
+    fontSize: 16,
+    color: "#333",
   },
 });

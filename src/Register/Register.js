@@ -8,31 +8,32 @@ import {
   Pressable,
   Keyboard,
   Alert,
-  Button,
+  TouchableOpacity,
 } from "react-native";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { ref, set, get } from "firebase/database";
+import { ref, set } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
 import { auth, database } from "../../firebaseConfig";
+import CustomHeader from "../components/CustomHeader";
+
+const HEADER_HEIGHT = 64;
 
 export const Register = () => {
   const [name, setName] = useState("");
-  const [role, setRole] = useState("student"); // Default
+  const [role, setRole] = useState("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const nav = useNavigation();
 
   const createProfile = async (userId) => {
     try {
-      const user = await get(ref(database, `users/${email}`));
-      console.log("User: ", user);
-
       await set(ref(database, `users/${userId}`), {
+        userId,
         name,
         role,
         email,
       });
-      await set(ref(database, `leaderboard/${userId}`), { score: 0 });
+      // set(ref(database, `leaderboard/${userId}`), { score: 0 });
     } catch (error) {
       console.error("Error saving profile to database: ", error);
       Alert.alert("Error", "Failed to save profile. Please try again.");
@@ -41,14 +42,17 @@ export const Register = () => {
 
   const registerAndGoToMainFlow = async () => {
     if (!name.trim()) {
+      console.log("Name cannot be empty.");
       Alert.alert("Validation Error", "Name cannot be empty.");
       return;
     }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
+      console.log("Invalid email address.");
       Alert.alert("Validation Error", "Enter a valid email address.");
       return;
     }
     if (password.length < 6) {
+      console.log("Password must be at least 6 characters long.");
       Alert.alert(
         "Validation Error",
         "Password must be at least 6 characters long."
@@ -77,56 +81,88 @@ export const Register = () => {
   };
 
   return (
-    <Pressable style={styles.contentView} onPress={Keyboard.dismiss}>
-      <SafeAreaView style={styles.contentView}>
-        <View style={styles.container}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.titleText}>Register</Text>
-          </View>
-          <View style={styles.mainContent}>
-            <TextInput
-              style={styles.loginTextField}
-              placeholder="Name"
-              value={name}
-              onChangeText={setName}
-            />
-            <TextInput
-              style={styles.loginTextField}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              inputMode="email"
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.loginTextField}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-            <View style={{ flexDirection: "row", marginVertical: 10 }}>
-              <Button
-                title="Student"
-                onPress={() => setRole("student")}
-                color={role === "student" ? "#2196F3" : "#B0BEC5"}
-              />
-              <View style={{ width: 20 }} />
-              <Button
-                title="Teacher"
-                onPress={() => setRole("teacher")}
-                color={role === "teacher" ? "#2196F3" : "#B0BEC5"}
-              />
-            </View>
-            <Text>Current Role: {role}</Text>
-          </View>
+    <Pressable style={styles.screenContainer} onPress={Keyboard.dismiss}>
+      <CustomHeader title="Register" />
+      <SafeAreaView style={styles.contentContainer}>
+        <View style={styles.formBlock}>
+          <Text style={styles.title}>Create a New Account</Text>
 
-          <Button
-            title="Sign Up"
-            onPress={registerAndGoToMainFlow}
-            color="#2196F3"
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            placeholderTextColor="rgba(0,0,0,0.4)"
+            value={name}
+            onChangeText={setName}
           />
-          <Button title="Go Back" onPress={nav.goBack} color="#FF5722" />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="rgba(0,0,0,0.4)"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="rgba(0,0,0,0.4)"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+
+          <View style={styles.roleContainer}>
+            <TouchableOpacity
+              onPress={() => setRole("student")}
+              style={[
+                styles.roleButton,
+                role === "student" && styles.roleButtonSelected,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.roleButtonText,
+                  role === "student" && styles.roleButtonTextSelected,
+                ]}
+              >
+                Student
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setRole("teacher")}
+              style={[
+                styles.roleButton,
+                role === "teacher" && styles.roleButtonSelected,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.roleButtonText,
+                  role === "teacher" && styles.roleButtonTextSelected,
+                ]}
+              >
+                Teacher
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.currentRole}>Current Role: {role}</Text>
+
+          <TouchableOpacity
+            onPress={registerAndGoToMainFlow}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Sign Up</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={nav.goBack}
+            style={[styles.outlineButton, { marginTop: 12 }]}
+          >
+            <Text style={styles.outlineButtonText}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </Pressable>
@@ -134,33 +170,94 @@ export const Register = () => {
 };
 
 const styles = StyleSheet.create({
-  contentView: {
+  screenContainer: {
     flex: 1,
     backgroundColor: "white",
   },
-  container: {
+  contentContainer: {
     flex: 1,
-    marginHorizontal: 20,
-    backgroundColor: "white",
-    paddingTop: 20,
+    marginTop: HEADER_HEIGHT,
+    padding: 20,
   },
-  titleContainer: {
-    flex: 1.2,
-    justifyContent: "center",
+  formBlock: {
+    backgroundColor: "#fdfdfd",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#eee",
+    padding: 16,
+    marginTop: 20,
   },
-  titleText: {
-    fontSize: 36,
+  title: {
+    fontSize: 22,
+    fontWeight: "600",
+    marginBottom: 16,
     textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 12,
+    backgroundColor: "#fff",
+  },
+  roleContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  roleButton: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginHorizontal: 8,
+    backgroundColor: "#f9f9f9",
+  },
+  roleButtonSelected: {
+    backgroundColor: "#2196F3",
+    borderColor: "#2196F3",
+  },
+  roleButtonText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  roleButtonTextSelected: {
+    color: "#fff",
     fontWeight: "bold",
   },
-  loginTextField: {
-    borderBottomWidth: 1,
-    height: 50,
-    fontSize: 18,
-    marginVertical: 10,
-    paddingHorizontal: 8,
+  currentRole: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 12,
   },
-  mainContent: {
-    flex: 6,
+  primaryButton: {
+    backgroundColor: "#2196F3",
+    paddingVertical: 14,
+    borderRadius: 6,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  primaryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  outlineButton: {
+    borderWidth: 2,
+    borderColor: "#2196F3",
+    borderRadius: 6,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  outlineButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2196F3",
   },
 });
+
+export default Register;

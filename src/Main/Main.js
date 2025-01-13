@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { ref, get, child } from "firebase/database";
 import { database } from "../../firebaseConfig";
+import CustomHeader from "../components/CustomHeader";
+
+const HEADER_HEIGHT = 64;
 
 const Main = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  // We receive the user's role and userId from route params
   const { role, userId } = route.params || { role: "student", userId: null };
-
   const [score, setScore] = useState(0);
 
-  // Example: fetch user’s score from the Realtime Database (leaderboard)
   useEffect(() => {
     if (userId) {
       const dbRef = ref(database);
@@ -28,25 +28,30 @@ const Main = () => {
     }
   }, [userId]);
 
+  const goToDetectObject = () => {
+    navigation.navigate("DetectObject", { role, userId });
+  };
+
+  const goToGroups = () => {
+    navigation.navigate("Groups", { role, userId });
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to the Main Screen!</Text>
+    <View style={styles.screenContainer}>
+      <CustomHeader title="Main" />
+      <View style={styles.contentContainer}>
+        <Text style={styles.title}>Welcome to the Main Screen!</Text>
+        <Text style={styles.subTitle}>Your role is: {role.toUpperCase()}</Text>
+        <Text style={styles.subTitle}>Your global score is: {score}</Text>
 
-      <Text style={styles.subtitle}>Your role is: {role.toUpperCase()}</Text>
+        <TouchableOpacity onPress={goToDetectObject} style={styles.button}>
+          <Text style={styles.buttonText}>Detect Objects</Text>
+        </TouchableOpacity>
 
-      <Text style={styles.subtitle}>Your score is: {score}</Text>
-
-      {/* Button to go to the DetectObject screen */}
-      <Button
-        title="Go to Detect Object"
-        onPress={() => navigation.navigate("DetectObject", { role, userId })}
-      />
-
-      {role === "teacher" ? (
-        <Text style={styles.subtitle}>[Teacher Dashboard content]</Text>
-      ) : (
-        <Text style={styles.subtitle}>[Student Dashboard content]</Text>
-      )}
+        <TouchableOpacity onPress={goToGroups} style={styles.button}>
+          <Text style={styles.buttonText}>Groups</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -54,19 +59,38 @@ const Main = () => {
 export default Main;
 
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
     backgroundColor: "#fff",
-    justifyContent: "center",
+  },
+  contentContainer: {
+    flex: 1,
+    marginTop: HEADER_HEIGHT,
+    padding: 20,
     alignItems: "center",
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "bold",
-    marginBottom: 20,
-  },
-  subtitle: {
-    fontSize: 18,
     marginBottom: 10,
+    textAlign: "center",
+  },
+  subTitle: {
+    fontSize: 16,
+    marginBottom: 15,
+    textAlign: "center",
+    color: "#333",
+  },
+  button: {
+    backgroundColor: "#2196F3",
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    borderRadius: 6,
+    marginVertical: 8,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
