@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect  } from "react";
+import { useNavigation} from "@react-navigation/native";
 import {
   View,
   Text,
@@ -12,13 +13,44 @@ import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import { useRoute } from "@react-navigation/native";
 import CustomHeader from "../components/CustomHeader";
+import { database } from "../../firebaseConfig";
+import { ref, set, onValue } from "firebase/database";
 
 const HEADER_HEIGHT = 64;
 
+export const saveTaskToDatabase = async (taskList) => {
+  try {
+    const taskRef = ref(database, "tasks/");
+    await set(taskRef, taskList);
+    alert("Predmeti su uspješno spremljeni!");
+  } catch (err) {
+    console.log("Greška kod spremanja zadatka: ", err);
+  }
+};
+
+export const getTasksFromDatabase = async (setTask) => {
+  try {
+    const taskRef = ref(database, "tasks/");
+    onValue(taskRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setTask(data); // Sprema dohvaćene predmete u state
+      } else {
+        alert("Nema spremljenih zadataka.");
+      }
+    });
+  } catch (err) {
+    console.log("Greška kod dohvaćanja zadatka: ", err);
+  }
+};
+
 const DetectObject = () => {
+  const navigation = useNavigation();
   const route = useRoute();
   const { role, userId } = route.params || { role: "student", userId: null };
-
+  const goToMain = () => {
+    navigation.navigate("Main", { role, userId });
+  };
   const [imageUri, setImageUri] = useState(null);
   const [labels, setLabels] = useState([]);
   const [task, setTask] = useState([]);
@@ -88,8 +120,10 @@ const DetectObject = () => {
   };
 
   const selectLabel = (label) => {
-    setTask((prevTask) => [...prevTask, label]);
-    alert(`Label "${label}" added to the task.`);
+    const updatedTasks = [...task, label];
+    setTask(updatedTasks);
+    saveTaskToDatabase(updatedTasks); // Sprema zadatak u bazu
+    alert(`Label "${label}" dodan u zadatak.`);
     setImageUri(null);
     setLabels([]);
   };
@@ -107,6 +141,12 @@ const DetectObject = () => {
     }
     setImageUri(null);
   };
+
+  useEffect(() => {
+    if (role === "student") {
+      getTasksFromDatabase(setTask); // Učenik dohvaća zadatke pri učitavanju
+    }
+  }, []);
 
   return (
     <View style={styles.screenContainer}>
@@ -174,6 +214,12 @@ const DetectObject = () => {
             )}
           </View>
         )}
+         <TouchableOpacity
+        onPress={() => navigation.navigate("Main", { role, userId })}
+        style={[styles.button, { backgroundColor: "#4CAF50" }]}
+      >
+        <Text style={styles.buttonText}>Povratak na Main</Text>
+      </TouchableOpacity>
       </View>
     </View>
   );
