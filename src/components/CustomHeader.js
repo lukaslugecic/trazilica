@@ -27,12 +27,24 @@ const CustomHeader = ({ title }) => {
     }
   };
 
+  const handleBack = () => {
+    if (canGoBack) {
+      const previousRoute = navigation.getState().routes[navigation.getState().routes.length - 2];
+
+      if (previousRoute.name === "Main") {
+        navigation.replace("Main", previousRoute.params);
+      } else {
+        navigation.goBack();
+      }
+    }
+  };
+
   return (
     <View style={styles.headerContainer}>
       {canGoBack ? (
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
