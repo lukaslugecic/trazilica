@@ -10,8 +10,10 @@ const CustomHeader = ({ title }) => {
   const navigation = useNavigation();
   const route = useRoute();
 
+  const isLoginScreen = route.name === "Login";
+
   // If there's a previous route in the navigation stack, show back button
-  const canGoBack = navigation.canGoBack();
+  const canGoBack = navigation.canGoBack() && !isLoginScreen;
 
   const isLoggedInScreen = !["Login", "Register"].includes(route.name);
 
