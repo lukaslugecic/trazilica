@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { auth } from "../../firebaseConfig";
+import { signOut } from "firebase/auth";
 
 const HEADER_HEIGHT = 64;
 
@@ -10,6 +12,20 @@ const CustomHeader = ({ title }) => {
 
   // If there's a previous route in the navigation stack, show back button
   const canGoBack = navigation.canGoBack();
+
+  const isLoggedInScreen = !["Login", "Register"].includes(route.name);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
 
   return (
     <View style={styles.headerContainer}>
@@ -27,8 +43,13 @@ const CustomHeader = ({ title }) => {
 
       <Text style={styles.headerTitle}>{title || route.name}</Text>
 
-      {/* Right placeholder if you want an icon or want the title centered */}
-      <View style={styles.rightPlaceholder} />
+      {isLoggedInScreen ? (
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+      ) : (
+          <View style={styles.rightPlaceholder} />
+      )}
     </View>
   );
 };
@@ -67,6 +88,16 @@ const styles = StyleSheet.create({
   },
   rightPlaceholder: {
     width: 50,
+  },
+  logoutButton: {
+    width: 50,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoutButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
 
