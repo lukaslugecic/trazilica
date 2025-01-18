@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
+import {useRoute, useNavigation, useFocusEffect} from "@react-navigation/native";
 import { ref, get, child } from "firebase/database";
 import { database } from "../../firebaseConfig";
 import CustomHeader from "../components/CustomHeader";
@@ -13,20 +13,25 @@ const Main = () => {
   const { role, userId } = route.params || { role: "student", userId: null };
   const [score, setScore] = useState(0);
 
-  useEffect(() => {
-    if (userId) {
-      const dbRef = ref(database);
-      get(child(dbRef, `leaderboard/${userId}`))
-        .then((snapshot) => {
-          if (snapshot.exists()) {
-            setScore(snapshot.val().score);
+  useFocusEffect(
+      React.useCallback(() => {
+        const fetchScore = async () => {
+          if (userId) {
+            const dbRef = ref(database);
+            try {
+              const snapshot = await get(child(dbRef, `leaderboard/${userId}`));
+              if (snapshot.exists()) {
+                setScore(snapshot.val().score);
+              }
+            } catch (error) {
+              console.log("Error fetching scoreboard: ", error);
+            }
           }
-        })
-        .catch((error) => {
-          console.log("Error fetching scoreboard: ", error);
-        });
-    }
-  }, [userId]);
+        };
+
+        fetchScore();
+      }, [userId])
+  );
 
   const goToDetectObject = () => {
     navigation.navigate("DetectObject", { role, userId });

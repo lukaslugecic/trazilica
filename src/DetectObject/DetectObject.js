@@ -29,23 +29,32 @@ export const saveTaskToDatabase = async (taskList) => {
   }
 };
 
-export const getTasksFromDatabase = async (setTask) => {
-  try {
+export const getTasksFromDatabase = async (setTask, userId) => {
     const taskRef = ref(database, "tasks/");
-    onValue(taskRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setTask(data); // Sprema dohvaćene predmete u state
-      } else {
-        alert("Nema spremljenih zadataka.");
+    const completedTasksRef = ref(database, `completedTasks/${userId}`);
+
+    try {
+      const tasksSnapshot = await get(taskRef);
+      const completedTasksSnapshot = await get(completedTasksRef);
+
+      if (!tasksSnapshot.exists()) {
+        alert("Nema spremljenih zadataka, zamolite učitelja da ih postavi.");
+        return;
       }
-    });
-  } catch (err) {
-    console.log("Greška kod dohvaćanja zadatka: ", err);
-  }
+
+      const tasks = tasksSnapshot.val();
+      const completedTasks = completedTasksSnapshot.val() || [];
+
+      const availableTasks = tasks.filter(task => !completedTasks[task]);
+      console.log("Dostupni zadaci: ", availableTasks);
+      console.log("Završeni zadaci: ", completedTasks);
+      setTask(availableTasks);
+    } catch (err) {
+      console.log("Greška kod dohvaćanja zadatka: ", err);
+    }
 };
 
-const updateUserScore = async (userId, groupId) => {
+const updateUserScore = async (userId, groupId, completedTask) => {
   try {
     const userScoreRef = ref(database, `leaderboard/${userId}`);
     const scoreSnapshot = await get(userScoreRef);
@@ -61,6 +70,21 @@ const updateUserScore = async (userId, groupId) => {
       });
     }
 
+    const completedTasksRef = ref(database, `completedTasks/${userId}`);
+    const completedSnapshot = await get(completedTasksRef);
+    let completedTasks = completedSnapshot.val();
+
+    if (!completedTasks) {
+      completedTasks = {};
+    }
+
+    completedTasks = {
+      ...completedTasks,
+      [completedTask]: true
+    };
+
+    await set(completedTasksRef, completedTasks);
+
     return currentScore;
   } catch (err) {
     console.log("Greška kod ažuriranja bodova: ", err);
@@ -71,9 +95,6 @@ const DetectObject = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { role, userId } = route.params || { role: "student", userId: null };
-  const goToMain = () => {
-    navigation.navigate("Main", { role, userId });
-  };
   const [imageUri, setImageUri] = useState(null);
   const [labels, setLabels] = useState([]);
   const [task, setTask] = useState([]);
@@ -81,21 +102,27 @@ const DetectObject = () => {
   const [currentScore, setCurrentScore] = useState(0);
 
   useEffect(() => {
-    // Fetch initial score
-    const fetchScore = async () => {
+    // Fetch  score
+    const loadData = async () => {
       if (userId) {
         const scoreRef = ref(database, `leaderboard/${userId}`);
-        const snapshot = await get(scoreRef);
-        if (snapshot.exists()) {
-          setCurrentScore(snapshot.val().score || 0);
+        try{
+          const snapshot = await get(scoreRef);
+          if (snapshot.exists()) {
+            setCurrentScore(snapshot.val().score || 0);
+          }
+        }
+        catch (err) {
+          console.log("Error fetching scoreboard: ", err);
+        }
+        if (role === "student") {
+          await getTasksFromDatabase(setTask, userId);
         }
       }
     };
 
-    fetchScore();
-    if (role === "student") {
-      getTasksFromDatabase(setTask);
-    }
+    loadData();
+
   }, [userId, role]);
 
   const takePhoto = async () => {
@@ -172,15 +199,17 @@ const DetectObject = () => {
 
   const checkMatch = async (detectedLabels) => {
     const descriptions = detectedLabels.map((l) => l.description);
-    const match = task.some((label) => descriptions.includes(label));
-    if (match) {
+    const matchingTask = task.find((label) => descriptions.includes(label));
+
+    if (matchingTask) {
       try {
-        const newScore = await updateUserScore(userId);
+        const newScore = await updateUserScore(userId, null, matchingTask);
         setCurrentScore(newScore);
         alert(`Pronađeno! +${POINTS_PER_FIND} bodova!`);
-        setTask((prevTask) =>
+        /*setTask((prevTask) =>
             prevTask.filter((label) => !descriptions.includes(label))
-        );
+        );*/
+        await getTasksFromDatabase(setTask, userId);
       } catch (err) {
             console.log("Error updating score: ", err);
             alert("Error updating score. Please try again.");
