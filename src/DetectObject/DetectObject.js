@@ -29,6 +29,24 @@ export const saveTaskToDatabase = async (taskList) => {
   }
 };
 
+const getUserGroups = async (userId) => {
+  try {
+    const groupsRef = ref(database, 'groups');
+    const snapshot = await get(groupsRef);
+
+    if (!snapshot.exists()) return [];
+
+    const groupsData = snapshot.val();
+    return Object.entries(groupsData)
+        .filter(([_, group]) => group.members?.[userId])
+        .map(([groupId, group]) => groupId);
+  } catch (err) {
+    console.error('Error fetching user groups:', err);
+    return [];
+  }
+};
+
+
 export const getTasksFromDatabase = async (setTask, userId) => {
     const taskRef = ref(database, "tasks/");
     const completedTasksRef = ref(database, `completedTasks/${userId}`);
@@ -54,36 +72,37 @@ export const getTasksFromDatabase = async (setTask, userId) => {
     }
 };
 
-const updateUserScore = async (userId, groupId, completedTask) => {
+const updateUserScore = async (userId, completedTask) => {
   try {
     const userScoreRef = ref(database, `leaderboard/${userId}`);
     const scoreSnapshot = await get(userScoreRef);
     const currentScore = (scoreSnapshot.val()?.score || 0) + POINTS_PER_FIND;
     await update(userScoreRef, { score: currentScore });
 
-    if (groupId) {
-      const groupScoreRef = ref(database, `groups/${groupId}/leaderboard/${userId}`);
-      const groupScoreSnapshot = await get(groupScoreRef);
-      const currentGroupScore = (groupScoreSnapshot.val() || 0) + POINTS_PER_FIND;
-      await update(ref(database, `groups/${groupId}/leaderboard`), {
-        [userId]: currentGroupScore
-      });
+    const userGroups = await getUserGroups(userId);
+
+    for (const groupId of userGroups) {
+      const groupRef = ref(database, `groups/${groupId}`);
+      const groupSnapshot = await get(groupRef);
+
+      if (groupSnapshot.exists()) {
+        const groupData = groupSnapshot.val();
+        const currentGroupScore = (groupData.leaderboard?.[userId] || 0) + POINTS_PER_FIND;
+
+        await update(ref(database, `groups/${groupId}/leaderboard`), {
+          [userId]: currentGroupScore
+        });
+      }
     }
 
     const completedTasksRef = ref(database, `completedTasks/${userId}`);
     const completedSnapshot = await get(completedTasksRef);
-    let completedTasks = completedSnapshot.val();
+    let completedTasks = completedSnapshot.val() || {};
 
-    if (!completedTasks) {
-      completedTasks = {};
-    }
-
-    completedTasks = {
+    await set(completedTasksRef, {
       ...completedTasks,
       [completedTask]: true
-    };
-
-    await set(completedTasksRef, completedTasks);
+    });
 
     return currentScore;
   } catch (err) {
@@ -203,7 +222,7 @@ const DetectObject = () => {
 
     if (matchingTask) {
       try {
-        const newScore = await updateUserScore(userId, null, matchingTask);
+        const newScore = await updateUserScore(userId, matchingTask);
         setCurrentScore(newScore);
         alert(`Pronađeno! +${POINTS_PER_FIND} bodova!`);
         /*setTask((prevTask) =>

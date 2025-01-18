@@ -74,8 +74,11 @@ const Groups = () => {
         const groupsData = groupsSnap.val();
         // Check if groupTag is used
         const allGroups = Object.keys(groupsData).map((gId) => groupsData[gId]);
-        const alreadyUsed = allGroups.some(
+        /*const alreadyUsed = allGroups.some(
           (g) => g.groupTag?.toLowerCase() === groupTag.toLowerCase()
+        );*/
+        const alreadyUsed = Object.values(groupsData).some(
+            g => g.groupTag?.toLowerCase() === groupTag.toLowerCase()
         );
         if (alreadyUsed) {
           Alert.alert("Error", "That group tag is already taken. Try another!");
@@ -125,32 +128,28 @@ const Groups = () => {
       }
 
       const groupsData = groupsSnap.val();
-      const groupEntries = Object.keys(groupsData).map((gId) => ({
-        groupId: gId,
-        ...groupsData[gId],
-      }));
-
-      // 2) Find the group with matching groupTag
-      const targetGroup = groupEntries.find(
-        (g) => g.groupTag?.toLowerCase() === joinTag.toLowerCase()
+      const targetGroup = Object.entries(groupsData).find(
+          ([_, group]) => group.groupTag?.toLowerCase() === joinTag.toLowerCase()
       );
+
       if (!targetGroup) {
         Alert.alert("Error", `No group found with tag "${joinTag}".`);
         return;
       }
 
-      // 3) Check if user is already in members
-      if (targetGroup.members && targetGroup.members[userId]) {
-        Alert.alert("Info", "You are already in that group.");
+      const [groupId, groupData] = targetGroup;
+
+      if (groupData.members?.[userId]) {
+        Alert.alert("Info", "You are already in this group.");
         return;
       }
 
-      // 4) Otherwise, add user
-      const thisGroupRef = ref(database, `groups/${targetGroup.groupId}`);
-      await update(thisGroupRef, {
+      const updates = {
         [`members/${userId}`]: true,
-        [`leaderboard/${userId}`]: 0,
-      });
+        [`leaderboard/${userId}`]: 0 // Initialize score for new member
+      };
+
+      await update(ref(database, `groups/${groupId}`), updates);
 
       Alert.alert("Success", `You joined the group "${targetGroup.groupTag}"!`);
       setJoinTag("");
