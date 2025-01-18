@@ -10,8 +10,10 @@ const CustomHeader = ({ title }) => {
   const navigation = useNavigation();
   const route = useRoute();
 
+  const isLoginScreen = route.name === "Login";
+
   // If there's a previous route in the navigation stack, show back button
-  const canGoBack = navigation.canGoBack();
+  const canGoBack = navigation.canGoBack() && !isLoginScreen;
 
   const isLoggedInScreen = !["Login", "Register"].includes(route.name);
 
@@ -27,12 +29,24 @@ const CustomHeader = ({ title }) => {
     }
   };
 
+  const handleBack = () => {
+    if (canGoBack) {
+      const previousRoute = navigation.getState().routes[navigation.getState().routes.length - 2];
+
+      if (previousRoute.name === "Main") {
+        navigation.replace("Main", previousRoute.params);
+      } else {
+        navigation.goBack();
+      }
+    }
+  };
+
   return (
     <View style={styles.headerContainer}>
       {canGoBack ? (
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>

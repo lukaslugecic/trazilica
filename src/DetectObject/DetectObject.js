@@ -14,9 +14,10 @@ import * as FileSystem from "expo-file-system";
 import { useRoute } from "@react-navigation/native";
 import CustomHeader from "../components/CustomHeader";
 import { database } from "../../firebaseConfig";
-import { ref, set, onValue } from "firebase/database";
+import {ref, set, onValue, get, update} from "firebase/database";
 
 const HEADER_HEIGHT = 64;
+const POINTS_PER_FIND = 1;
 
 export const saveTaskToDatabase = async (taskList) => {
   try {
@@ -44,6 +45,28 @@ export const getTasksFromDatabase = async (setTask) => {
   }
 };
 
+const updateUserScore = async (userId, groupId) => {
+  try {
+    const userScoreRef = ref(database, `leaderboard/${userId}`);
+    const scoreSnapshot = await get(userScoreRef);
+    const currentScore = (scoreSnapshot.val()?.score || 0) + POINTS_PER_FIND;
+    await update(userScoreRef, { score: currentScore });
+
+    if (groupId) {
+      const groupScoreRef = ref(database, `groups/${groupId}/leaderboard/${userId}`);
+      const groupScoreSnapshot = await get(groupScoreRef);
+      const currentGroupScore = (groupScoreSnapshot.val() || 0) + POINTS_PER_FIND;
+      await update(ref(database, `groups/${groupId}/leaderboard`), {
+        [userId]: currentGroupScore
+      });
+    }
+
+    return currentScore;
+  } catch (err) {
+    console.log("Greška kod ažuriranja bodova: ", err);
+  }
+}
+
 const DetectObject = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -55,6 +78,25 @@ const DetectObject = () => {
   const [labels, setLabels] = useState([]);
   const [task, setTask] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [currentScore, setCurrentScore] = useState(0);
+
+  useEffect(() => {
+    // Fetch initial score
+    const fetchScore = async () => {
+      if (userId) {
+        const scoreRef = ref(database, `leaderboard/${userId}`);
+        const snapshot = await get(scoreRef);
+        if (snapshot.exists()) {
+          setCurrentScore(snapshot.val().score || 0);
+        }
+      }
+    };
+
+    fetchScore();
+    if (role === "student") {
+      getTasksFromDatabase(setTask);
+    }
+  }, [userId, role]);
 
   const takePhoto = async () => {
     try {
@@ -128,14 +170,21 @@ const DetectObject = () => {
     setLabels([]);
   };
 
-  const checkMatch = (detectedLabels) => {
+  const checkMatch = async (detectedLabels) => {
     const descriptions = detectedLabels.map((l) => l.description);
     const match = task.some((label) => descriptions.includes(label));
     if (match) {
-      alert("Pronađeno!");
-      setTask((prevTask) =>
-        prevTask.filter((label) => !descriptions.includes(label))
-      );
+      try {
+        const newScore = await updateUserScore(userId);
+        setCurrentScore(newScore);
+        alert(`Pronađeno! +${POINTS_PER_FIND} bodova!`);
+        setTask((prevTask) =>
+            prevTask.filter((label) => !descriptions.includes(label))
+        );
+      } catch (err) {
+            console.log("Error updating score: ", err);
+            alert("Error updating score. Please try again.");
+        }
     } else {
       alert("Nije pronađeno!");
     }
@@ -156,7 +205,7 @@ const DetectObject = () => {
         <Text style={styles.subTitle}>
           You are in {role.toUpperCase()} mode.
         </Text>
-
+        <Text style={styles.scoreText}>Current Score: {currentScore}</Text>
         {imageUri && (
           <Image source={{ uri: imageUri }} style={styles.imagePreview} />
         )}
@@ -298,5 +347,11 @@ const styles = StyleSheet.create({
   labelText: {
     fontSize: 16,
     color: "#333",
+  },
+  scoreText: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+    color: "#4CAF50",
   },
 });
