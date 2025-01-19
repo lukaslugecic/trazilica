@@ -7,6 +7,7 @@ import DetectObject from "./src/DetectObject/DetectObject";
 import Main from "./src/Main/Main";
 import Groups from "./src/Groups/Groups";
 import Scoreboard from "./src/Groups/Scoreboard";
+import TaskListManager from "./src/TaskListManager/TaskListManager";
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +21,7 @@ export default function App() {
         <Stack.Screen name="DetectObject" component={DetectObject} />
         <Stack.Screen name="Groups" component={Groups} />
         <Stack.Screen name="Scoreboard" component={Scoreboard} />
+        <Stack.Screen name="TaskListManager" component={TaskListManager} />
       </Stack.Navigator>
     </NavigationContainer>
   );

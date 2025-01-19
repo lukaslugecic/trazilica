@@ -12,26 +12,27 @@ const Main = () => {
   const navigation = useNavigation();
   const { role, userId } = route.params || { role: "student", userId: null };
   const [score, setScore] = useState(0);
+  const [userName, setUserName] = useState("");
 
-  useFocusEffect(
-      React.useCallback(() => {
-        const fetchScore = async () => {
-          if (userId) {
-            const dbRef = ref(database);
+  useEffect(() => {
+    const fetchUserName = async () => {
+        if (userId) {
             try {
-              const snapshot = await get(child(dbRef, `leaderboard/${userId}`));
-              if (snapshot.exists()) {
-                setScore(snapshot.val().score);
-              }
+                const userRef = ref(database, `users/${userId}`);
+                const snapshot = await get(userRef);
+                if (snapshot.exists()) {
+                    setUserName(snapshot.val().name || "");
+                }
             } catch (error) {
-              console.log("Error fetching scoreboard: ", error);
+                console.log("Error fetching username:", error);
             }
-          }
-        };
+        }
+    };
 
-        fetchScore();
-      }, [userId])
-  );
+    fetchUserName();
+  }, [userId]);
+
+
 
   const goToDetectObject = () => {
     navigation.navigate("DetectObject", { role, userId });
@@ -41,23 +42,48 @@ const Main = () => {
     navigation.navigate("Groups", { role, userId });
   };
 
+  const renderTeacherView = () => (
+      <>
+        <Text style={styles.title}>Teacher Dashboard</Text>
+        <Text style={styles.description}>
+            Welcome, {userName}!
+          Create and manage groups, set tasks for students to find
+        </Text>
+
+        <TouchableOpacity
+            onPress={() => navigation.navigate("Groups", { role, userId })}
+            style={styles.button}
+        >
+          <Text style={styles.buttonText}>Manage Groups</Text>
+        </TouchableOpacity>
+      </>
+  );
+
+  const renderStudentView = () => (
+      <>
+        <Text style={styles.title}>Student Dashboard</Text>
+
+        <Text style={styles.description}>
+            Welcome, {userName}!
+          Join groups and find objects to earn points!
+        </Text>
+
+        <TouchableOpacity
+            onPress={() => navigation.navigate("Groups", { role, userId })}
+            style={styles.button}
+        >
+          <Text style={styles.buttonText}>My Groups</Text>
+        </TouchableOpacity>
+      </>
+  );
+
   return (
-    <View style={styles.screenContainer}>
-      <CustomHeader title="Main" />
-      <View style={styles.contentContainer}>
-        <Text style={styles.title}>Welcome to the Main Screen!</Text>
-        <Text style={styles.subTitle}>Your role is: {role.toUpperCase()}</Text>
-        <Text style={styles.subTitle}>Your global score is: {score}</Text>
-
-        <TouchableOpacity onPress={goToDetectObject} style={styles.button}>
-          <Text style={styles.buttonText}>Detect Objects</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={goToGroups} style={styles.button}>
-          <Text style={styles.buttonText}>Groups</Text>
-        </TouchableOpacity>
+      <View style={styles.screenContainer}>
+        <CustomHeader title="Dashboard" />
+        <View style={styles.contentContainer}>
+          {role === "teacher" ? renderTeacherView() : renderStudentView()}
+        </View>
       </View>
-    </View>
   );
 };
 
@@ -98,4 +124,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  description: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  }
 });

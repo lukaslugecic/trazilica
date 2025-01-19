@@ -168,18 +168,55 @@ const Groups = () => {
   // For each group in "My Groups," show groupTag and teacherName
   const renderGroupItem = ({ item }) => {
     return (
-      <View style={styles.groupItem}>
-        <Text style={styles.tagText}>Group Tag: {item.groupTag}</Text>
-        <Text style={styles.teacherText}>Teacher: {item.teacherName}</Text>
-        <TouchableOpacity
-          onPress={() => handleScoreboard(item)}
-          style={styles.scoreButton}
-        >
-          <Text style={styles.scoreButtonText}>View Scoreboard</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.groupItem}>
+          <Text style={styles.tagText}>Group Tag: {item.groupTag}</Text>
+          <Text style={styles.teacherText}>Teacher: {item.teacherName}</Text>
+          <View style={styles.buttonContainer}>
+            {role === "teacher" ? (
+                <>
+                  <TouchableOpacity
+                      style={[styles.button, {backgroundColor: '#4CAF50'}]}
+                      onPress={() => navigation.navigate('TaskListManager', {
+                        groupId: item.groupId,
+                        groupTag: item.groupTag
+                      })}
+                  >
+                    <Text style={styles.buttonText}>Manage Tasks</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                      style={styles.button}
+                      onPress={() => handleScoreboard(item)}
+                  >
+                    <Text style={styles.buttonText}>View Scoreboard</Text>
+                  </TouchableOpacity>
+                </>
+            ) : (
+                <>
+                  <TouchableOpacity
+                      style={[styles.button, {backgroundColor: '#4CAF50'}]}
+                      onPress={() => navigation.navigate('DetectObject', {
+                        groupId: item.groupId,
+                        groupTag: item.groupTag,
+                        role,
+                        userId
+                      })}
+                  >
+                    <Text style={styles.buttonText}>Find Objects</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                      style={styles.button}
+                      onPress={() => handleScoreboard(item)}
+                  >
+                    <Text style={styles.buttonText}>View Scoreboard</Text>
+                  </TouchableOpacity>
+                </>
+            )}
+          </View>
+        </View>
     );
-  };
+  }
 
   return (
     <View style={styles.screenContainer}>
@@ -313,5 +350,21 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "bold",
+  },buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  button: {
+    flex: 0.48,
+    backgroundColor: '#2196F3',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
