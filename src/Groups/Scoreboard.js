@@ -11,8 +11,10 @@ const Scoreboard = () => {
   const route = useRoute();
   const { groupId } = route.params || {};
 
-  const [groupTag, setGroupTag] = useState("");
-  const [scores, setScores] = useState([]);
+  const [groupInfo, setGroupInfo] = useState({
+    tag: "",
+    scores: []
+  });
 
   useEffect(() => {
     if (!groupId) return;
@@ -22,72 +24,90 @@ const Scoreboard = () => {
     const unsubscribe = onValue(groupRef, async (snapshot) => {
       if (!snapshot.exists()) {
         // If group doesn't exist, clear everything
-        setGroupTag("");
-        setScores([]);
+        setGroupInfo({ tag: "", scores: [] });
         return;
       }
 
-      const groupData = snapshot.val() || {};
-      const theTag = groupData.groupTag || "";
-      setGroupTag(theTag);
-
-      const teacherUid = groupData.teacherId || null;
+      const groupData = snapshot.val();
       const leaderboard = groupData.leaderboard || {};
+      const members = groupData.members || {};
 
-      const studentUids = Object.keys(leaderboard).filter(
-        (uid) => uid !== teacherUid
-      );
-
-      const newScores = [];
-      for (const uid of studentUids) {
+      // Get all member data and scores
+      const memberPromises = Object.keys(members).map(async (uid) => {
         try {
-          const userSnap = await get(child(ref(database), `users/${uid}`));
-          let studentName = "Student";
-          if (userSnap.exists()) {
-            const userData = userSnap.val();
-            studentName = userData.name || "Student";
-          }
+          const userSnap = await get(ref(database, `users/${uid}`));
+          const userData = userSnap.val() || {};
 
-          newScores.push({
-            userId: uid, // we won't display it, but we keep it as a key
-            userName: studentName,
-            score: leaderboard[uid],
-          });
-        } catch (err) {
-          console.log("Error fetching user data:", err);
-          newScores.push({
+          return {
             userId: uid,
-            userName: "Student",
-            score: leaderboard[uid],
-          });
+            userName: userData.name || "Unknown User",
+            score: leaderboard[uid] || 0,
+            role: userData.role || "student"
+          };
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+          return {
+            userId: uid,
+            userName: "Unknown User",
+            score: leaderboard[uid] || 0,
+            role: "student"
+          };
         }
-      }
+      });
 
-      setScores(newScores);
+      const memberData = await Promise.all(memberPromises);
+
+      // Sort by score in descending order
+      const sortedScores = memberData
+          .filter(member => member.role === "student") // Only show students
+          .sort((a, b) => b.score - a.score);
+
+      setGroupInfo({
+        tag: groupData.groupTag || "",
+        scores: sortedScores
+      });
     });
 
     return () => unsubscribe();
   }, [groupId]);
 
+  const renderScoreItem = ({ item, index }) => (
+      <View style={styles.scoreItem}>
+        <View style={styles.rankContainer}>
+          <Text style={styles.rankText}>#{index + 1}</Text>
+        </View>
+        <View style={styles.scoreDetails}>
+          <Text style={styles.nameText}>{item.userName}</Text>
+          <Text style={styles.scoreText}>{item.score} points</Text>
+        </View>
+      </View>
+  );
+
   return (
     <View style={styles.screenContainer}>
-      <CustomHeader title="Scoreboard" />
+      <CustomHeader title="Group Scoreboard" />
       <View style={styles.contentContainer}>
-        <Text style={styles.title}>Group Scoreboard</Text>
-        <Text style={styles.subTitle}>Group Tag: {groupTag || "No Tag"}</Text>
-        {scores.length === 0 ? (
-          <Text style={styles.noScoresText}>No students in scoreboard.</Text>
+        <View style={styles.headerSection}>
+          <Text style={styles.groupTag}>Group: {groupInfo.tag}</Text>
+          <Text style={styles.subTitle}>
+            {groupInfo.scores.length} {groupInfo.scores.length === 1 ? 'Student' : 'Students'}
+          </Text>
+        </View>
+
+        {groupInfo.scores.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No scores yet</Text>
+              <Text style={styles.emptyStateSubText}>
+                Students will appear here when they earn points
+              </Text>
+            </View>
         ) : (
-          <FlatList
-            data={scores}
-            keyExtractor={(item) => item.userId}
-            renderItem={({ item }) => (
-              <View style={styles.scoreItem}>
-                <Text style={styles.scoreText}>Name: {item.userName}</Text>
-                <Text style={styles.scoreText}>Score: {item.score}</Text>
-              </View>
-            )}
-          />
+            <FlatList
+                data={groupInfo.scores}
+                keyExtractor={(item) => item.userId}
+                renderItem={renderScoreItem}
+                contentContainerStyle={styles.listContainer}
+            />
         )}
       </View>
     </View>
@@ -99,34 +119,86 @@ export default Scoreboard;
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#fff"
   },
   contentContainer: {
     flex: 1,
     marginTop: HEADER_HEIGHT,
-    padding: 20,
+    padding: 16
   },
-  title: {
+  headerSection: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e9ecef"
+  },
+  groupTag: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 8,
+    color: "#2196F3"
   },
   subTitle: {
     fontSize: 16,
-    marginBottom: 16,
-  },
-  noScoresText: {
-    fontSize: 16,
-    marginTop: 10,
     color: "#666",
+    marginTop: 4
+  },
+  listContainer: {
+    paddingVertical: 8
   },
   scoreItem: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    marginVertical: 4,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#eee"
+  },
+  rankContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#2196F3",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12
+  },
+  rankText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold"
+  },
+  scoreDetails: {
+    flex: 1
+  },
+  nameText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333"
   },
   scoreText: {
-    fontSize: 16,
-    color: "#333",
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2
   },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 100
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#666"
+  },
+  emptyStateSubText: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 8,
+    textAlign: "center"
+  }
 });

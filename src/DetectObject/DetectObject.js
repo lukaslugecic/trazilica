@@ -29,37 +29,80 @@ export const saveTaskToDatabase = async (taskList) => {
   }
 };
 
-export const getTasksFromDatabase = async (setTask) => {
+const getUserGroups = async (userId) => {
   try {
-    const taskRef = ref(database, "tasks/");
-    onValue(taskRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setTask(data); // Sprema dohvaćene predmete u state
-      } else {
-        alert("Nema spremljenih zadataka.");
-      }
-    });
+    const groupsRef = ref(database, 'groups');
+    const snapshot = await get(groupsRef);
+
+    if (!snapshot.exists()) return [];
+
+    const groupsData = snapshot.val();
+    return Object.entries(groupsData)
+        .filter(([_, group]) => group.members?.[userId])
+        .map(([groupId, group]) => groupId);
   } catch (err) {
-    console.log("Greška kod dohvaćanja zadatka: ", err);
+    console.error('Error fetching user groups:', err);
+    return [];
   }
 };
 
-const updateUserScore = async (userId, groupId) => {
+
+export const getTasksFromDatabase = async (setTask, userId) => {
+    const taskRef = ref(database, "tasks/");
+    const completedTasksRef = ref(database, `completedTasks/${userId}`);
+
+    try {
+      const tasksSnapshot = await get(taskRef);
+      const completedTasksSnapshot = await get(completedTasksRef);
+
+      if (!tasksSnapshot.exists()) {
+        alert("Nema spremljenih zadataka, zamolite učitelja da ih postavi.");
+        return;
+      }
+
+      const tasks = tasksSnapshot.val();
+      const completedTasks = completedTasksSnapshot.val() || [];
+
+      const availableTasks = tasks.filter(task => !completedTasks[task]);
+      console.log("Dostupni zadaci: ", availableTasks);
+      console.log("Završeni zadaci: ", completedTasks);
+      setTask(availableTasks);
+    } catch (err) {
+      console.log("Greška kod dohvaćanja zadatka: ", err);
+    }
+};
+
+const updateUserScore = async (userId, completedTask) => {
   try {
     const userScoreRef = ref(database, `leaderboard/${userId}`);
     const scoreSnapshot = await get(userScoreRef);
     const currentScore = (scoreSnapshot.val()?.score || 0) + POINTS_PER_FIND;
     await update(userScoreRef, { score: currentScore });
 
-    if (groupId) {
-      const groupScoreRef = ref(database, `groups/${groupId}/leaderboard/${userId}`);
-      const groupScoreSnapshot = await get(groupScoreRef);
-      const currentGroupScore = (groupScoreSnapshot.val() || 0) + POINTS_PER_FIND;
-      await update(ref(database, `groups/${groupId}/leaderboard`), {
-        [userId]: currentGroupScore
-      });
+    const userGroups = await getUserGroups(userId);
+
+    for (const groupId of userGroups) {
+      const groupRef = ref(database, `groups/${groupId}`);
+      const groupSnapshot = await get(groupRef);
+
+      if (groupSnapshot.exists()) {
+        const groupData = groupSnapshot.val();
+        const currentGroupScore = (groupData.leaderboard?.[userId] || 0) + POINTS_PER_FIND;
+
+        await update(ref(database, `groups/${groupId}/leaderboard`), {
+          [userId]: currentGroupScore
+        });
+      }
     }
+
+    const completedTasksRef = ref(database, `completedTasks/${userId}`);
+    const completedSnapshot = await get(completedTasksRef);
+    let completedTasks = completedSnapshot.val() || {};
+
+    await set(completedTasksRef, {
+      ...completedTasks,
+      [completedTask]: true
+    });
 
     return currentScore;
   } catch (err) {
@@ -70,33 +113,43 @@ const updateUserScore = async (userId, groupId) => {
 const DetectObject = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { role, userId } = route.params || { role: "student", userId: null };
-  const goToMain = () => {
-    navigation.navigate("Main", { role, userId });
-  };
+  const { groupId, groupTag, userId } = route.params;
+
   const [imageUri, setImageUri] = useState(null);
-  const [labels, setLabels] = useState([]);
-  const [task, setTask] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [currentScore, setCurrentScore] = useState(0);
+  const [groupScore, setGroupScore] = useState(0);
 
   useEffect(() => {
-    // Fetch initial score
-    const fetchScore = async () => {
-      if (userId) {
-        const scoreRef = ref(database, `leaderboard/${userId}`);
-        const snapshot = await get(scoreRef);
-        if (snapshot.exists()) {
-          setCurrentScore(snapshot.val().score || 0);
-        }
+    const loadData = async () => {
+      try {
+        // Get tasks for this group
+        const tasksRef = ref(database, `groups/${groupId}/tasks`);
+        const completedTasksRef = ref(database, `completedTasks/${userId}`);
+
+        const [tasksSnap, completedSnap] = await Promise.all([
+          get(tasksRef),
+          get(completedTasksRef)
+        ]);
+
+        const allTasks = tasksSnap.val() || [];
+        const completedTasks = completedSnap.val() || {};
+
+        // Filter out completed tasks
+        const availableTasks = allTasks.filter(task => !completedTasks[task]);
+        setTasks(availableTasks);
+
+        // Get user's score for this group
+        const groupRef = ref(database, `groups/${groupId}/leaderboard/${userId}`);
+        const scoreSnap = await get(groupRef);
+        setGroupScore(scoreSnap.val() || 0);
+      } catch (err) {
+        console.error("Error loading data:", err);
       }
     };
 
-    fetchScore();
-    if (role === "student") {
-      getTasksFromDatabase(setTask);
-    }
-  }, [userId, role]);
+    loadData();
+  }, [groupId, userId]);
 
   const takePhoto = async () => {
     try {
@@ -107,16 +160,16 @@ const DetectObject = () => {
       }
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        aspect: [3, 3],
+        aspect: [4, 3],
         quality: 1,
       });
       if (!result.canceled) {
         const newUri = result.assets[0].uri;
-        setImageUri(newUri);
-        await analyzeImage(newUri);
+        await analyzeImage(result.assets[0].uri);
       }
     } catch (err) {
       console.log("Error taking photo: ", err);
+      alert("Failed to take photo");
     }
   };
 
@@ -136,23 +189,15 @@ const DetectObject = () => {
         requests: [
           {
             image: { content: base64Image },
-            features: [{ type: "LABEL_DETECTION", maxResults: 3 }],
+            features: [{ type: "LABEL_DETECTION", maxResults: 5 }],
           },
         ],
       };
 
       const apiResponse = await axios.post(apiUrl, requestData);
-      const detectedLabels = apiResponse.data.responses[0]?.labelAnnotations;
+      const labels = apiResponse.data.responses[0]?.labelAnnotations || [];
 
-      if (detectedLabels) {
-        if (role === "teacher") {
-          setLabels(detectedLabels); // let teacher select which labels to add
-        } else {
-          checkMatch(detectedLabels); // student checks for match immediately
-        }
-      } else {
-        alert("No labels detected. Try another photo.");
-      }
+      checkMatch(labels);
     } catch (err) {
       console.log("Error analyzing image: ", err);
       alert("Error analyzing image. Please try again.");
@@ -161,114 +206,90 @@ const DetectObject = () => {
     }
   };
 
-  const selectLabel = (label) => {
+  /*const selectLabel = (label) => {
     const updatedTasks = [...task, label];
     setTask(updatedTasks);
     saveTaskToDatabase(updatedTasks); // Sprema zadatak u bazu
     alert(`Label "${label}" dodan u zadatak.`);
     setImageUri(null);
     setLabels([]);
-  };
+  };*/
 
-  const checkMatch = async (detectedLabels) => {
-    const descriptions = detectedLabels.map((l) => l.description);
-    const match = task.some((label) => descriptions.includes(label));
-    if (match) {
-      try {
-        const newScore = await updateUserScore(userId);
-        setCurrentScore(newScore);
-        alert(`Pronađeno! +${POINTS_PER_FIND} bodova!`);
-        setTask((prevTask) =>
-            prevTask.filter((label) => !descriptions.includes(label))
-        );
-      } catch (err) {
-            console.log("Error updating score: ", err);
-            alert("Error updating score. Please try again.");
-        }
-    } else {
+  const checkMatch = async (labels) => {
+    const detectedLabels = labels.map((l) => l.description.toLowerCase());
+    const matchingTask = tasks.find(task =>
+        detectedLabels.includes(task.toLowerCase())
+    );
+
+    if (!matchingTask){
       alert("Nije pronađeno!");
+      setImageUri(null);
+      return;
     }
+
+    try {
+      const groupRef = ref(database, `groups/${groupId}/leaderboard/${userId}`);
+      const scoreSnap = await get(groupRef);
+      const newScore = (scoreSnap.val() || 0) + POINTS_PER_FIND;
+      await update(ref(database, `groups/${groupId}/leaderboard`), {
+        [userId]: newScore
+      });
+      setGroupScore(newScore);
+
+      // Mark task as completed
+      await update(ref(database, `completedTasks/${userId}`), {
+        [matchingTask]: true
+      });
+
+      // Update available tasks
+      setTasks(prev => prev.filter(task => task !== matchingTask));
+
+      alert(`Pronađeno! +${POINTS_PER_FIND} bodova!`);
+    } catch (err) {
+      console.log("Error updating score: ", err);
+      alert("Error updating score. Please try again.");
+    }
+
     setImageUri(null);
   };
 
-  useEffect(() => {
-    if (role === "student") {
-      getTasksFromDatabase(setTask); // Učenik dohvaća zadatke pri učitavanju
-    }
-  }, []);
-
   return (
     <View style={styles.screenContainer}>
-      <CustomHeader title="Detect Object" />
+      <CustomHeader title={`Find Objects - ${groupTag}`} />
       <View style={styles.contentContainer}>
-        <Text style={styles.title}>Tražilica</Text>
-        <Text style={styles.subTitle}>
-          You are in {role.toUpperCase()} mode.
-        </Text>
-        <Text style={styles.scoreText}>Current Score: {currentScore}</Text>
+        <Text style={styles.scoreText}>Points in this group: {groupScore}</Text>
+
+        <View style={styles.taskContainer}>
+          <Text style={styles.sectionTitle}>Find one of these:</Text>
+          {tasks.length > 0 ? (
+              tasks.map((task, index) => (
+                  <Text key={index} style={styles.taskText}>• {task}</Text>
+              ))
+          ) : (
+              <Text style={styles.noTasksText}>
+                All tasks completed! Great job!
+              </Text>
+          )}
+        </View>
+
         {imageUri && (
           <Image source={{ uri: imageUri }} style={styles.imagePreview} />
         )}
 
-        {loading && (
-          <ActivityIndicator size="large" color="blue" style={{ margin: 20 }} />
+        {loading ? (
+            <ActivityIndicator size="large" color="#2196F3" style={styles.loader} />
+        ) : tasks.length > 0 && (
+            <TouchableOpacity style={styles.cameraButton} onPress={takePhoto}>
+              <Text style={styles.buttonText}>Take Photo</Text>
+            </TouchableOpacity>
         )}
 
-        {role === "teacher" && (
-          <View style={styles.teacherContainer}>
-            {!imageUri && (
-              <>
-                <TouchableOpacity onPress={takePhoto} style={styles.button}>
-                  <Text style={styles.buttonText}>Uslikaj</Text>
-                </TouchableOpacity>
-                <Text style={styles.labelTitle}>Odabrani predmeti:</Text>
-                {task.map((label, index) => (
-                  <Text key={index} style={styles.taskText}>
-                    {label}
-                  </Text>
-                ))}
-              </>
-            )}
-
-            {labels.length > 0 && (
-              <View style={{ marginTop: 10 }}>
-                <Text style={styles.labelTitle}>Što želim odabrati?</Text>
-                {labels.map((label) => (
-                  <TouchableOpacity
-                    key={label.mid}
-                    onPress={() => selectLabel(label.description)}
-                    style={styles.labelButton}
-                  >
-                    <Text style={styles.labelText}>{label.description}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-
-        {role === "student" && (
-          <View style={styles.studentContainer}>
-            <Text style={styles.labelTitle}>Pronađi:</Text>
-            {task.map((label, index) => (
-              <Text key={index} style={styles.taskText}>
-                {label}
-              </Text>
-            ))}
-
-            {!loading && (
-              <TouchableOpacity onPress={takePhoto} style={styles.button}>
-                <Text style={styles.buttonText}>Pronađi predmet</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-         <TouchableOpacity
-        onPress={() => navigation.navigate("Main", { role, userId })}
-        style={[styles.button, { backgroundColor: "#4CAF50" }]}
-      >
-        <Text style={styles.buttonText}>Povratak na Main</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+            style={[styles.button, { backgroundColor: "#4CAF50" }]}
+            onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.buttonText}>Back to Groups</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -353,5 +374,40 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 16,
     color: "#4CAF50",
+  },
+  taskContainer: {
+    backgroundColor: "#f5f5f5",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 10,
+    color: "#333",
+  },
+  noTasksText: {
+    fontSize: 16,
+    color: "#666",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginVertical: 10,
+  },
+  preview: {
+    width: "100%",
+    height: 300,
+    borderRadius: 8,
+    marginVertical: 20,
+  },
+  loader: {
+    marginVertical: 20,
+  },
+  cameraButton: {
+    backgroundColor: "#2196F3",
+    paddingVertical: 15,
+    borderRadius: 8,
+    marginTop: "auto",
+    marginBottom: 10,
   },
 });
