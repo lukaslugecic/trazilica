@@ -7,6 +7,7 @@ import {
     Image,
     Alert,
     ActivityIndicator,
+    ScrollView,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { database } from '../../firebaseConfig';
@@ -78,10 +79,12 @@ const TaskListManager = () => {
             });
 
             const requestData = {
-                requests: [{
-                    image: { content: base64Image },
-                    features: [{ type: 'LABEL_DETECTION', maxResults: 5 }]
-                }]
+                requests: [
+                    {
+                        image: { content: base64Image },
+                        features: [{ type: 'LABEL_DETECTION', maxResults: 3 }],
+                    },
+                ],
             };
 
             const response = await axios.post(apiUrl, requestData);
@@ -116,36 +119,27 @@ const TaskListManager = () => {
             <View style={styles.contentContainer}>
                 <Text style={styles.title}>Add Items to Find</Text>
 
-                <View style={styles.taskListContainer}>
-                    <Text style={styles.subtitle}>Current Tasks:</Text>
-                    {taskList.map((task, index) => (
-                        <Text key={index} style={styles.taskItem}>• {task}</Text>
-                    ))}
-                </View>
+                {/* Task List */}
+                <TaskList
+                    tasks={taskList}
+                    isExpanded={labels.length === 0}
+                />
 
-                {imageUri && (
-                    <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                )}
+                {/* Image Preview */}
+                {imageUri && <Image source={{ uri: imageUri }} style={styles.imagePreview} />}
 
-                {loading && (
-                    <ActivityIndicator size="large" color="#2196F3" style={styles.loader} />
-                )}
-                //TODO: scroll view as this can get out of page if list is too long
+                {/* Loader */}
+                {loading && <ActivityIndicator size="large" color="#2196F3" style={styles.loader} />}
+
+                {/* Label Options */}
                 {labels.length > 0 && (
-                    <View style={styles.labelsContainer}>
-                        <Text style={styles.subtitle}>Select item to add:</Text>
-                        {labels.map((label) => (
-                            <TouchableOpacity
-                                key={label.mid}
-                                style={styles.labelButton}
-                                onPress={() => addToTaskList(label)}
-                            >
-                                <Text style={styles.labelText}>{label.description}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                    <LabelSelector
+                        labels={labels}
+                        onLabelPress={addToTaskList}
+                    />
                 )}
 
+                {/* Button to Scan New Item */}
                 {!loading && !labels.length && (
                     <TouchableOpacity style={styles.button} onPress={takePhoto}>
                         <Text style={styles.buttonText}>Scan New Item</Text>
@@ -156,6 +150,45 @@ const TaskListManager = () => {
     );
 };
 
+/**
+ * TaskList Component
+ */
+const TaskList = ({ tasks, isExpanded }) => (
+    <View
+        style={[
+            styles.taskListContainer,
+            isExpanded && styles.taskListExpanded,
+        ]}
+    >
+        <Text style={styles.subtitle}>Current Tasks ({tasks.length}):</Text>
+        <ScrollView style={styles.scrollableTaskList}>
+            {tasks.map((task, index) => (
+                <Text key={index} style={styles.taskItem}>
+                    • {task}
+                </Text>
+            ))}
+        </ScrollView>
+    </View>
+);
+
+/**
+ * LabelSelector Component
+ */
+const LabelSelector = ({ labels, onLabelPress }) => (
+    <View style={styles.labelsContainer}>
+        <Text style={styles.subtitle}>Select item to add:</Text>
+        {labels.map((label) => (
+            <TouchableOpacity
+                key={label.mid}
+                style={styles.labelButton}
+                onPress={() => onLabelPress(label)}
+            >
+                <Text style={styles.labelText}>{label.description}</Text>
+            </TouchableOpacity>
+        ))}
+    </View>
+);
+
 const styles = StyleSheet.create({
     screenContainer: {
         flex: 1,
@@ -163,7 +196,6 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         flex: 1,
-        marginTop: HEADER_HEIGHT,
         padding: 20,
     },
     title: {
@@ -181,6 +213,10 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 8,
         marginBottom: 20,
+        maxHeight: 150,
+    },
+    taskListExpanded: {
+        maxHeight: 450,
     },
     taskItem: {
         fontSize: 16,

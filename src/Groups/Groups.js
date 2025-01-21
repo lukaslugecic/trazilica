@@ -13,8 +13,6 @@ import { database, auth } from "../../firebaseConfig";
 import { ref, push, set, onValue, update, get, child } from "firebase/database";
 import CustomHeader from "../components/CustomHeader";
 
-const HEADER_HEIGHT = 64;
-
 const Groups = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -72,13 +70,8 @@ const Groups = () => {
       const groupsSnap = await get(ref(database, "groups"));
       if (groupsSnap.exists()) {
         const groupsData = groupsSnap.val();
-        // Check if groupTag is used
-        const allGroups = Object.keys(groupsData).map((gId) => groupsData[gId]);
-        /*const alreadyUsed = allGroups.some(
-          (g) => g.groupTag?.toLowerCase() === groupTag.toLowerCase()
-        );*/
         const alreadyUsed = Object.values(groupsData).some(
-            g => g.groupTag?.toLowerCase() === groupTag.toLowerCase()
+          (g) => g.groupTag?.toLowerCase() === groupTag.toLowerCase()
         );
         if (alreadyUsed) {
           Alert.alert("Error", "That group tag is already taken. Try another!");
@@ -173,50 +166,52 @@ const Groups = () => {
           <Text style={styles.teacherText}>Teacher: {item.teacherName}</Text>
           <View style={styles.buttonContainer}>
             {role === "teacher" ? (
-                <>
-                  <TouchableOpacity
-                      style={[styles.button, {backgroundColor: '#4CAF50'}]}
-                      onPress={() => navigation.navigate('TaskListManager', {
-                        groupId: item.groupId,
-                        groupTag: item.groupTag
-                      })}
-                  >
-                    <Text style={styles.buttonText}>Manage Tasks</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                      style={styles.button}
-                      onPress={() => handleScoreboard(item)}
-                  >
-                    <Text style={styles.buttonText}>View Scoreboard</Text>
-                  </TouchableOpacity>
-                </>
+              <>
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: "#4CAF50" }]}
+                  onPress={() =>
+                    navigation.navigate("TaskListManager", {
+                      groupId: item.groupId,
+                      groupTag: item.groupTag,
+                    })
+                  }
+                >
+                  <Text style={styles.buttonText}>Manage Tasks</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => handleScoreboard(item)}
+                >
+                  <Text style={styles.buttonText}>View Scoreboard</Text>
+                </TouchableOpacity>
+              </>
             ) : (
-                <>
-                  <TouchableOpacity
-                      style={[styles.button, {backgroundColor: '#4CAF50'}]}
-                      onPress={() => navigation.navigate('DetectObject', {
-                        groupId: item.groupId,
-                        groupTag: item.groupTag,
-                        role,
-                        userId
-                      })}
-                  >
-                    <Text style={styles.buttonText}>Find Objects</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                      style={styles.button}
-                      onPress={() => handleScoreboard(item)}
-                  >
-                    <Text style={styles.buttonText}>View Scoreboard</Text>
-                  </TouchableOpacity>
-                </>
+              <>
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: "#4CAF50" }]}
+                  onPress={() =>
+                    navigation.navigate("DetectObject", {
+                      groupId: item.groupId,
+                      groupTag: item.groupTag,
+                      role,
+                      userId,
+                    })
+                  }
+                >
+                  <Text style={styles.buttonText}>Find Objects</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => handleScoreboard(item)}
+                >
+                  <Text style={styles.buttonText}>View Scoreboard</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </View>
     );
-  }
+  };
 
   return (
     <View style={styles.screenContainer}>
@@ -257,17 +252,16 @@ const Groups = () => {
           </View>
         )}
 
-        <View style={[styles.formBlock, { marginTop: 30 }]}>
+        <View style={[styles.formBlock, { marginTop: 30, flex: 1 }]}>
           <Text style={styles.title}>My Groups</Text>
-          {myGroups.length === 0 ? (
-            <Text style={{ marginTop: 10 }}>No groups found.</Text>
-          ) : (
-            <FlatList
-              data={myGroups}
-              keyExtractor={(item) => item.groupId}
-              renderItem={renderGroupItem}
-            />
-          )}
+          <FlatList
+            data={myGroups}
+            keyExtractor={(item) => item.groupId}
+            renderItem={renderGroupItem}
+            contentContainerStyle={{ paddingBottom: 16 }}
+            ListEmptyComponent={<Text>No groups found.</Text>}
+            style={{ flex: 1 }}
+          />
         </View>
       </View>
     </View>
@@ -283,7 +277,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    marginTop: HEADER_HEIGHT,
+   // marginTop: HEADER_HEIGHT,
     padding: 16,
   },
   formBlock: {
@@ -293,6 +287,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#eee",
+    maxHeight: 450,
   },
   title: {
     fontSize: 18,
