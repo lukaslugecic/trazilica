@@ -1,5 +1,5 @@
-import React, { useState, useEffect  } from "react";
-import { useNavigation} from "@react-navigation/native";
+import React, { useState, useEffect } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import * as FileSystem from "expo-file-system";
 import { useRoute } from "@react-navigation/native";
 import CustomHeader from "../components/CustomHeader";
 import { database } from "../../firebaseConfig";
-import {ref, set, onValue, get, update} from "firebase/database";
+import { ref, set, onValue, get, update } from "firebase/database";
 
 const HEADER_HEIGHT = 64;
 const POINTS_PER_FIND = 1;
@@ -31,45 +31,44 @@ export const saveTaskToDatabase = async (taskList) => {
 
 const getUserGroups = async (userId) => {
   try {
-    const groupsRef = ref(database, 'groups');
+    const groupsRef = ref(database, "groups");
     const snapshot = await get(groupsRef);
 
     if (!snapshot.exists()) return [];
 
     const groupsData = snapshot.val();
     return Object.entries(groupsData)
-        .filter(([_, group]) => group.members?.[userId])
-        .map(([groupId, group]) => groupId);
+      .filter(([_, group]) => group.members?.[userId])
+      .map(([groupId, group]) => groupId);
   } catch (err) {
-    console.error('Error fetching user groups:', err);
+    console.error("Error fetching user groups:", err);
     return [];
   }
 };
 
-
 export const getTasksFromDatabase = async (setTask, userId) => {
-    const taskRef = ref(database, "tasks/");
-    const completedTasksRef = ref(database, `completedTasks/${userId}`);
+  const taskRef = ref(database, "tasks/");
+  const completedTasksRef = ref(database, `completedTasks/${userId}`);
 
-    try {
-      const tasksSnapshot = await get(taskRef);
-      const completedTasksSnapshot = await get(completedTasksRef);
+  try {
+    const tasksSnapshot = await get(taskRef);
+    const completedTasksSnapshot = await get(completedTasksRef);
 
-      if (!tasksSnapshot.exists()) {
-        alert("Nema spremljenih zadataka, zamolite učitelja da ih postavi.");
-        return;
-      }
-
-      const tasks = tasksSnapshot.val();
-      const completedTasks = completedTasksSnapshot.val() || [];
-
-      const availableTasks = tasks.filter(task => !completedTasks[task]);
-      console.log("Dostupni zadaci: ", availableTasks);
-      console.log("Završeni zadaci: ", completedTasks);
-      setTask(availableTasks);
-    } catch (err) {
-      console.log("Greška kod dohvaćanja zadatka: ", err);
+    if (!tasksSnapshot.exists()) {
+      alert("Nema spremljenih zadataka, zamolite učitelja da ih postavi.");
+      return;
     }
+
+    const tasks = tasksSnapshot.val();
+    const completedTasks = completedTasksSnapshot.val() || [];
+
+    const availableTasks = tasks.filter((task) => !completedTasks[task]);
+    console.log("Dostupni zadaci: ", availableTasks);
+    console.log("Završeni zadaci: ", completedTasks);
+    setTask(availableTasks);
+  } catch (err) {
+    console.log("Greška kod dohvaćanja zadatka: ", err);
+  }
 };
 
 const updateUserScore = async (userId, completedTask) => {
@@ -87,10 +86,11 @@ const updateUserScore = async (userId, completedTask) => {
 
       if (groupSnapshot.exists()) {
         const groupData = groupSnapshot.val();
-        const currentGroupScore = (groupData.leaderboard?.[userId] || 0) + POINTS_PER_FIND;
+        const currentGroupScore =
+          (groupData.leaderboard?.[userId] || 0) + POINTS_PER_FIND;
 
         await update(ref(database, `groups/${groupId}/leaderboard`), {
-          [userId]: currentGroupScore
+          [userId]: currentGroupScore,
         });
       }
     }
@@ -101,14 +101,14 @@ const updateUserScore = async (userId, completedTask) => {
 
     await set(completedTasksRef, {
       ...completedTasks,
-      [completedTask]: true
+      [completedTask]: true,
     });
 
     return currentScore;
   } catch (err) {
     console.log("Greška kod ažuriranja bodova: ", err);
   }
-}
+};
 
 const DetectObject = () => {
   const navigation = useNavigation();
@@ -129,18 +129,21 @@ const DetectObject = () => {
 
         const [tasksSnap, completedSnap] = await Promise.all([
           get(tasksRef),
-          get(completedTasksRef)
+          get(completedTasksRef),
         ]);
 
         const allTasks = tasksSnap.val() || [];
         const completedTasks = completedSnap.val() || {};
 
         // Filter out completed tasks
-        const availableTasks = allTasks.filter(task => !completedTasks[task]);
+        const availableTasks = allTasks.filter((task) => !completedTasks[task]);
         setTasks(availableTasks);
 
         // Get user's score for this group
-        const groupRef = ref(database, `groups/${groupId}/leaderboard/${userId}`);
+        const groupRef = ref(
+          database,
+          `groups/${groupId}/leaderboard/${userId}`
+        );
         const scoreSnap = await get(groupRef);
         setGroupScore(scoreSnap.val() || 0);
       } catch (err) {
@@ -217,11 +220,11 @@ const DetectObject = () => {
 
   const checkMatch = async (labels) => {
     const detectedLabels = labels.map((l) => l.description.toLowerCase());
-    const matchingTask = tasks.find(task =>
-        detectedLabels.includes(task.toLowerCase())
+    const matchingTask = tasks.find((task) =>
+      detectedLabels.includes(task.toLowerCase())
     );
 
-    if (!matchingTask){
+    if (!matchingTask) {
       alert("Nije pronađeno!");
       setImageUri(null);
       return;
@@ -232,17 +235,17 @@ const DetectObject = () => {
       const scoreSnap = await get(groupRef);
       const newScore = (scoreSnap.val() || 0) + POINTS_PER_FIND;
       await update(ref(database, `groups/${groupId}/leaderboard`), {
-        [userId]: newScore
+        [userId]: newScore,
       });
       setGroupScore(newScore);
 
       // Mark task as completed
       await update(ref(database, `completedTasks/${userId}`), {
-        [matchingTask]: true
+        [matchingTask]: true,
       });
 
       // Update available tasks
-      setTasks(prev => prev.filter(task => task !== matchingTask));
+      setTasks((prev) => prev.filter((task) => task !== matchingTask));
 
       alert(`Pronađeno! +${POINTS_PER_FIND} bodova!`);
     } catch (err) {
@@ -262,13 +265,15 @@ const DetectObject = () => {
         <View style={styles.taskContainer}>
           <Text style={styles.sectionTitle}>Find one of these:</Text>
           {tasks.length > 0 ? (
-              tasks.map((task, index) => (
-                  <Text key={index} style={styles.taskText}>• {task}</Text>
-              ))
-          ) : (
-              <Text style={styles.noTasksText}>
-                All tasks completed! Great job!
+            tasks.map((task, index) => (
+              <Text key={index} style={styles.taskText}>
+                • {task}
               </Text>
+            ))
+          ) : (
+            <Text style={styles.noTasksText}>
+              All tasks completed! Great job!
+            </Text>
           )}
         </View>
 
@@ -277,16 +282,22 @@ const DetectObject = () => {
         )}
 
         {loading ? (
-            <ActivityIndicator size="large" color="#2196F3" style={styles.loader} />
-        ) : tasks.length > 0 && (
+          <ActivityIndicator
+            size="large"
+            color="#2196F3"
+            style={styles.loader}
+          />
+        ) : (
+          tasks.length > 0 && (
             <TouchableOpacity style={styles.cameraButton} onPress={takePhoto}>
               <Text style={styles.buttonText}>Take Photo</Text>
             </TouchableOpacity>
+          )
         )}
 
         <TouchableOpacity
-            style={[styles.button, { backgroundColor: "#4CAF50" }]}
-            onPress={() => navigation.goBack()}
+          style={[styles.button, { backgroundColor: "#4CAF50" }]}
+          onPress={() => navigation.goBack()}
         >
           <Text style={styles.buttonText}>Back to Groups</Text>
         </TouchableOpacity>

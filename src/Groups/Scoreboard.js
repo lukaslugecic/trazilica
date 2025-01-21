@@ -13,7 +13,7 @@ const Scoreboard = () => {
 
   const [groupInfo, setGroupInfo] = useState({
     tag: "",
-    scores: []
+    scores: [],
   });
 
   useEffect(() => {
@@ -42,7 +42,7 @@ const Scoreboard = () => {
             userId: uid,
             userName: userData.name || "Unknown User",
             score: leaderboard[uid] || 0,
-            role: userData.role || "student"
+            role: userData.role || "student",
           };
         } catch (err) {
           console.error("Error fetching user data:", err);
@@ -50,7 +50,7 @@ const Scoreboard = () => {
             userId: uid,
             userName: "Unknown User",
             score: leaderboard[uid] || 0,
-            role: "student"
+            role: "student",
           };
         }
       });
@@ -59,12 +59,12 @@ const Scoreboard = () => {
 
       // Sort by score in descending order
       const sortedScores = memberData
-          .filter(member => member.role === "student") // Only show students
-          .sort((a, b) => b.score - a.score);
+        .filter((member) => member.role === "student") // Only show students
+        .sort((a, b) => b.score - a.score);
 
       setGroupInfo({
         tag: groupData.groupTag || "",
-        scores: sortedScores
+        scores: sortedScores,
       });
     });
 
@@ -72,15 +72,15 @@ const Scoreboard = () => {
   }, [groupId]);
 
   const renderScoreItem = ({ item, index }) => (
-      <View style={styles.scoreItem}>
-        <View style={styles.rankContainer}>
-          <Text style={styles.rankText}>#{index + 1}</Text>
-        </View>
-        <View style={styles.scoreDetails}>
-          <Text style={styles.nameText}>{item.userName}</Text>
-          <Text style={styles.scoreText}>{item.score} points</Text>
-        </View>
+    <View style={styles.scoreItem}>
+      <View style={styles.rankContainer}>
+        <Text style={styles.rankText}>#{index + 1}</Text>
       </View>
+      <View style={styles.scoreDetails}>
+        <Text style={styles.nameText}>{item.userName}</Text>
+        <Text style={styles.scoreText}>{item.score} points</Text>
+      </View>
+    </View>
   );
 
   return (
@@ -90,24 +90,25 @@ const Scoreboard = () => {
         <View style={styles.headerSection}>
           <Text style={styles.groupTag}>Group: {groupInfo.tag}</Text>
           <Text style={styles.subTitle}>
-            {groupInfo.scores.length} {groupInfo.scores.length === 1 ? 'Student' : 'Students'}
+            {groupInfo.scores.length}{" "}
+            {groupInfo.scores.length === 1 ? "Student" : "Students"}
           </Text>
         </View>
 
         {groupInfo.scores.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No scores yet</Text>
-              <Text style={styles.emptyStateSubText}>
-                Students will appear here when they earn points
-              </Text>
-            </View>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No scores yet</Text>
+            <Text style={styles.emptyStateSubText}>
+              Students will appear here when they earn points
+            </Text>
+          </View>
         ) : (
-            <FlatList
-                data={groupInfo.scores}
-                keyExtractor={(item) => item.userId}
-                renderItem={renderScoreItem}
-                contentContainerStyle={styles.listContainer}
-            />
+          <FlatList
+            data={groupInfo.scores}
+            keyExtractor={(item) => item.userId}
+            renderItem={renderScoreItem}
+            contentContainerStyle={styles.listContainer}
+          />
         )}
       </View>
     </View>
@@ -119,12 +120,12 @@ export default Scoreboard;
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
-    backgroundColor: "#fff"
+    backgroundColor: "#fff",
   },
   contentContainer: {
     flex: 1,
     marginTop: HEADER_HEIGHT,
-    padding: 16
+    padding: 16,
   },
   headerSection: {
     marginBottom: 20,
@@ -132,20 +133,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e9ecef"
+    borderColor: "#e9ecef",
   },
   groupTag: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#2196F3"
+    color: "#2196F3",
   },
   subTitle: {
     fontSize: 16,
     color: "#666",
-    marginTop: 4
+    marginTop: 4,
   },
   listContainer: {
-    paddingVertical: 8
+    paddingVertical: 8,
   },
   scoreItem: {
     flexDirection: "row",
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#eee"
+    borderColor: "#eee",
   },
   rankContainer: {
     width: 40,
@@ -164,41 +165,41 @@ const styles = StyleSheet.create({
     backgroundColor: "#2196F3",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12
+    marginRight: 12,
   },
   rankText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
   scoreDetails: {
-    flex: 1
+    flex: 1,
   },
   nameText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333"
+    color: "#333",
   },
   scoreText: {
     fontSize: 14,
     color: "#666",
-    marginTop: 2
+    marginTop: 2,
   },
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 100
+    paddingBottom: 100,
   },
   emptyStateText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#666"
+    color: "#666",
   },
   emptyStateSubText: {
     fontSize: 14,
     color: "#999",
     marginTop: 8,
-    textAlign: "center"
-  }
+    textAlign: "center",
+  },
 });

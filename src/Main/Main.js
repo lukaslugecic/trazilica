@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import {useRoute, useNavigation, useFocusEffect} from "@react-navigation/native";
+import {
+  useRoute,
+  useNavigation,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { ref, get, child } from "firebase/database";
 import { database } from "../../firebaseConfig";
 import CustomHeader from "../components/CustomHeader";
@@ -16,23 +20,21 @@ const Main = () => {
 
   useEffect(() => {
     const fetchUserName = async () => {
-        if (userId) {
-            try {
-                const userRef = ref(database, `users/${userId}`);
-                const snapshot = await get(userRef);
-                if (snapshot.exists()) {
-                    setUserName(snapshot.val().name || "");
-                }
-            } catch (error) {
-                console.log("Error fetching username:", error);
-            }
+      if (userId) {
+        try {
+          const userRef = ref(database, `users/${userId}`);
+          const snapshot = await get(userRef);
+          if (snapshot.exists()) {
+            setUserName(snapshot.val().name || "");
+          }
+        } catch (error) {
+          console.log("Error fetching username:", error);
         }
+      }
     };
 
     fetchUserName();
   }, [userId]);
-
-
 
   const goToDetectObject = () => {
     navigation.navigate("DetectObject", { role, userId });
@@ -43,47 +45,46 @@ const Main = () => {
   };
 
   const renderTeacherView = () => (
-      <>
-        <Text style={styles.title}>Teacher Dashboard</Text>
-        <Text style={styles.description}>
-            Welcome, {userName}!
-          Create and manage groups, set tasks for students to find
-        </Text>
+    <>
+      <Text style={styles.title}>Teacher Dashboard</Text>
+      <Text style={styles.description}>
+        Welcome, {userName}! Create and manage groups, set tasks for students to
+        find
+      </Text>
 
-        <TouchableOpacity
-            onPress={() => navigation.navigate("Groups", { role, userId })}
-            style={styles.button}
-        >
-          <Text style={styles.buttonText}>Manage Groups</Text>
-        </TouchableOpacity>
-      </>
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Groups", { role, userId })}
+        style={styles.button}
+      >
+        <Text style={styles.buttonText}>Manage Groups</Text>
+      </TouchableOpacity>
+    </>
   );
 
   const renderStudentView = () => (
-      <>
-        <Text style={styles.title}>Student Dashboard</Text>
+    <>
+      <Text style={styles.title}>Student Dashboard</Text>
 
-        <Text style={styles.description}>
-            Welcome, {userName}!
-          Join groups and find objects to earn points!
-        </Text>
+      <Text style={styles.description}>
+        Welcome, {userName}! Join groups and find objects to earn points!
+      </Text>
 
-        <TouchableOpacity
-            onPress={() => navigation.navigate("Groups", { role, userId })}
-            style={styles.button}
-        >
-          <Text style={styles.buttonText}>My Groups</Text>
-        </TouchableOpacity>
-      </>
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Groups", { role, userId })}
+        style={styles.button}
+      >
+        <Text style={styles.buttonText}>My Groups</Text>
+      </TouchableOpacity>
+    </>
   );
 
   return (
-      <View style={styles.screenContainer}>
-        <CustomHeader title="Dashboard" />
-        <View style={styles.contentContainer}>
-          {role === "teacher" ? renderTeacherView() : renderStudentView()}
-        </View>
+    <View style={styles.screenContainer}>
+      <CustomHeader title="Dashboard" />
+      <View style={styles.contentContainer}>
+        {role === "teacher" ? renderTeacherView() : renderStudentView()}
       </View>
+    </View>
   );
 };
 
@@ -126,9 +127,9 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+    color: "#666",
+    textAlign: "center",
     marginBottom: 30,
     paddingHorizontal: 20,
-  }
+  },
 });
