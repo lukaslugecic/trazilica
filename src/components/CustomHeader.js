@@ -31,7 +31,8 @@ const CustomHeader = ({ title }) => {
 
   const handleBack = () => {
     if (canGoBack) {
-      const previousRoute = navigation.getState().routes[navigation.getState().routes.length - 2];
+      const previousRoute =
+        navigation.getState().routes[navigation.getState().routes.length - 2];
 
       if (previousRoute.name === "Main") {
         navigation.replace("Main", previousRoute.params);
@@ -44,10 +45,7 @@ const CustomHeader = ({ title }) => {
   return (
     <View style={styles.headerContainer}>
       {canGoBack ? (
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
       ) : (
@@ -58,11 +56,11 @@ const CustomHeader = ({ title }) => {
       <Text style={styles.headerTitle}>{title || route.name}</Text>
 
       {isLoggedInScreen ? (
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
       ) : (
-          <View style={styles.rightPlaceholder} />
+        <View style={styles.rightPlaceholder} />
       )}
     </View>
   );
