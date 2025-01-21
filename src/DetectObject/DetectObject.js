@@ -301,6 +301,15 @@ const DetectObject = () => {
         >
           <Text style={styles.buttonText}>Back to Groups</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: "#4CAF50" }]}
+          onPress={() =>
+            navigation.navigate("Scoreboard", { groupId: groupId.groupId })
+          }
+        >
+          <Text style={styles.buttonText}>Scoreboard</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
