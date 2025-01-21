@@ -151,7 +151,7 @@ const Groups = () => {
 
       await update(ref(database, `groups/${groupId}`), updates);
 
-      Alert.alert("Success", `You joined the group "${targetGroup.groupTag}"!`);
+      Alert.alert("Success", `You joined the group "${groupData.groupTag}"!`);
       setJoinTag("");
     } catch (error) {
       console.error("Error joining group:", error);
