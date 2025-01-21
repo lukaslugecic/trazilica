@@ -134,20 +134,21 @@ const TaskListManager = () => {
             style={styles.loader}
           />
         )}
-        //TODO: scroll view as this can get out of page if list is too long
         {labels.length > 0 && (
-          <View style={styles.labelsContainer}>
-            <Text style={styles.subtitle}>Select item to add:</Text>
-            {labels.map((label) => (
-              <TouchableOpacity
-                key={label.mid}
-                style={styles.labelButton}
-                onPress={() => addToTaskList(label)}
-              >
-                <Text style={styles.labelText}>{label.description}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <ScrollView style={styles.labelsScrollView}>
+            <View style={styles.labelsContainer}>
+              <Text style={styles.subtitle}>Select item to add:</Text>
+              {labels.map((label) => (
+                <TouchableOpacity
+                  key={label.mid}
+                  style={styles.labelButton}
+                  onPress={() => addToTaskList(label)}
+                >
+                  <Text style={styles.labelText}>{label.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
         )}
         {!loading && !labels.length && (
           <TouchableOpacity style={styles.button} onPress={takePhoto}>
@@ -221,6 +222,11 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  labelsScrollView: {
+    maxHeight: 300,
+    marginTop: 20,
+    marginBottom: 20,
   },
 });
 
