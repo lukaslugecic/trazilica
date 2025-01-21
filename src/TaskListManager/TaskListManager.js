@@ -7,6 +7,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  ScrollView
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { database } from "../../firebaseConfig";
@@ -81,7 +82,7 @@ const TaskListManager = () => {
         requests: [
           {
             image: { content: base64Image },
-            features: [{ type: "LABEL_DETECTION", maxResults: 5 }],
+            features: [{ type: "LABEL_DETECTION", maxResults: 3 }],
           },
         ],
       };
@@ -111,45 +112,32 @@ const TaskListManager = () => {
     }
   };
 
-  return (
+    return (
     <View style={styles.screenContainer}>
       <CustomHeader title="Task Manager" />
       <View style={styles.contentContainer}>
         <Text style={styles.title}>Add Items to Find</Text>
-        <View style={styles.taskListContainer}>
-          <Text style={styles.subtitle}>Current Tasks:</Text>
-          {taskList.map((task, index) => (
-            <Text key={index} style={styles.taskItem}>
-              • {task}
-            </Text>
-          ))}
-        </View>
-        {imageUri && (
-          <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-        )}
-        {loading && (
-          <ActivityIndicator
-            size="large"
-            color="#2196F3"
-            style={styles.loader}
-          />
-        )}
+
+        {/* Task List */}
+        <TaskList
+            tasks={taskList}
+            isExpanded={labels.length === 0 && !loading}
+        />
+
+        {/* Image Preview */}
+        {imageUri && <Image source={{ uri: imageUri }} style={styles.imagePreview} />}
+
+        {/* Loader */}
+        {loading && <ActivityIndicator size="large" color="#2196F3" style={styles.loader} />}
+
+        {/* Label Options */}
         {labels.length > 0 && (
-          <ScrollView style={styles.labelsScrollView}>
-            <View style={styles.labelsContainer}>
-              <Text style={styles.subtitle}>Select item to add:</Text>
-              {labels.map((label) => (
-                <TouchableOpacity
-                  key={label.mid}
-                  style={styles.labelButton}
-                  onPress={() => addToTaskList(label)}
-                >
-                  <Text style={styles.labelText}>{label.description}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+            <LabelSelector
+                labels={labels}
+                onLabelPress={addToTaskList}
+            />
         )}
+        {/* Button to Scan New Item */}
         {!loading && !labels.length && (
           <TouchableOpacity style={styles.button} onPress={takePhoto}>
             <Text style={styles.buttonText}>Scan New Item</Text>
@@ -206,7 +194,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    marginTop: HEADER_HEIGHT,
     padding: 20,
   },
   title: {
@@ -224,6 +211,10 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginBottom: 20,
+    maxHeight: 150,
+  },
+  taskListExpanded: {
+      maxHeight: 400,
   },
   taskItem: {
     fontSize: 16,
@@ -261,11 +252,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
-  },
-  labelsScrollView: {
-    maxHeight: 300,
-    marginTop: 20,
-    marginBottom: 20,
   },
 });
 
