@@ -247,7 +247,7 @@ const DetectObject = () => {
       // Update available tasks
       setTasks((prev) => prev.filter((task) => task !== matchingTask));
 
-      alert(`Pronađeno! +${POINTS_PER_FIND} bodova!`);
+      alert(`Pronađeno: ${matchingTask}!\n+${POINTS_PER_FIND} bodova!`);
     } catch (err) {
       console.log("Error updating score: ", err);
       alert("Error updating score. Please try again.");
