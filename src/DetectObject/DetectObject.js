@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
+  ScrollView
 } from "react-native";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
@@ -262,19 +263,22 @@ const DetectObject = () => {
       <View style={styles.contentContainer}>
         <Text style={styles.scoreText}>Points in this group: {groupScore}</Text>
 
-        <View style={styles.taskContainer}>
-          <Text style={styles.sectionTitle}>Find one of these:</Text>
-          {tasks.length > 0 ? (
-            tasks.map((task, index) => (
-              <Text key={index} style={styles.taskText}>
-                • {task}
-              </Text>
-            ))
-          ) : (
-            <Text style={styles.noTasksText}>
-              All tasks completed! Great job!
-            </Text>
-          )}
+        <View style={styles.taskListContainer}>
+          <Text style={styles.subtitle}>Find all tasks: ({tasks.length}):</Text>
+          <ScrollView style={styles.scrollableTaskList}>
+            {tasks.length > 0 ? (
+                tasks.map((task, index) => (
+                  <Text key={index} style={styles.taskText}>
+                    • {task}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.noTasksText}>
+                  All tasks completed! Great job!
+                </Text>
+              )
+            }
+          </ScrollView>
         </View>
 
         {imageUri && (
@@ -289,7 +293,8 @@ const DetectObject = () => {
           />
         ) : (
           tasks.length > 0 && (
-            <TouchableOpacity style={styles.cameraButton} onPress={takePhoto}>
+            <TouchableOpacity style={styles.button
+            } onPress={takePhoto}>
               <Text style={styles.buttonText}>Take Photo</Text>
             </TouchableOpacity>
           )
@@ -324,9 +329,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    marginTop: HEADER_HEIGHT,
     padding: 20,
-    alignItems: "center",
   },
   title: {
     fontSize: 26,
@@ -336,6 +339,18 @@ const styles = StyleSheet.create({
   subTitle: {
     fontSize: 16,
     marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  taskListContainer: {
+    backgroundColor: "#f5f5f5",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+    maxHeight: 400,
   },
   imagePreview: {
     width: 280,
