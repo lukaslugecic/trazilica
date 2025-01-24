@@ -4,7 +4,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { auth } from "../../firebaseConfig";
 import { signOut } from "firebase/auth";
 
-const HEADER_HEIGHT = 64;
+const HEADER_HEIGHT = 90;
 
 const CustomHeader = ({ title }) => {
   const navigation = useNavigation();
