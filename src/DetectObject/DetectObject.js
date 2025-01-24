@@ -226,7 +226,7 @@ const DetectObject = () => {
     );
 
     if (!matchingTask) {
-      alert("Nije pronađeno!");
+      alert("Nothing found!");
       setImageUri(null);
       return;
     }
@@ -248,7 +248,7 @@ const DetectObject = () => {
       // Update available tasks
       setTasks((prev) => prev.filter((task) => task !== matchingTask));
 
-      alert(`Pronađeno: ${matchingTask}!\n+${POINTS_PER_FIND} bodova!`);
+      alert(`Found: ${matchingTask}!\n+${POINTS_PER_FIND} points!`);
     } catch (err) {
       console.log("Error updating score: ", err);
       alert("Error updating score. Please try again.");
@@ -310,7 +310,7 @@ const DetectObject = () => {
         <TouchableOpacity
           style={[styles.button, { backgroundColor: "#4CAF50" }]}
           onPress={() =>
-            navigation.navigate("Scoreboard", { groupId: groupId.groupId })
+            navigation.navigate("Scoreboard", { groupId: groupId })
           }
         >
           <Text style={styles.buttonText}>Scoreboard</Text>
