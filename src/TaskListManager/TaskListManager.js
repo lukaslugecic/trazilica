@@ -16,6 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import * as FileSystem from "expo-file-system";
 import CustomHeader from "../components/CustomHeader";
+import { GOOGLE_CLOUD_VISION_API_URL } from "@env";
 
 const HEADER_HEIGHT = 64;
 
@@ -73,7 +74,7 @@ const TaskListManager = () => {
     setLoading(true);
 
     try {
-      const apiUrl = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_URL;
+      const apiUrl = GOOGLE_CLOUD_VISION_API_URL;
       const base64Image = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });

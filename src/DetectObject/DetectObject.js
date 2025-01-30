@@ -16,6 +16,7 @@ import { useRoute } from "@react-navigation/native";
 import CustomHeader from "../components/CustomHeader";
 import { database } from "../../firebaseConfig";
 import { ref, set, onValue, get, update } from "firebase/database";
+import { GOOGLE_CLOUD_VISION_API_URL } from "@env";
 
 const HEADER_HEIGHT = 64;
 const POINTS_PER_FIND = 1;
@@ -184,7 +185,7 @@ const DetectObject = () => {
     }
     setLoading(true);
     try {
-      const apiUrl = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_VISION_API_URL;
+      const apiUrl = GOOGLE_CLOUD_VISION_API_URL;
       const base64Image = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
